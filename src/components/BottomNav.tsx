@@ -1,4 +1,4 @@
-import { Home, Bookmark, Plus, User, Settings } from "lucide-react";
+import { Home, ShoppingCart, Plus, Package, Settings } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -7,10 +7,10 @@ export const BottomNav = () => {
   const location = useLocation();
 
   const navItems = [
-    { icon: Home, label: "Feed", path: "/" },
-    { icon: Bookmark, label: "Closet", path: "/closet" },
+    { icon: Home, label: "Shopping", path: "/" },
+    { icon: ShoppingCart, label: "Cart", path: "/cart" },
     { icon: Plus, label: "Add", path: "/add", isSpecial: true },
-    { icon: User, label: "Profile", path: "/profile" },
+    { icon: Package, label: "My Orders", path: "/orders" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
