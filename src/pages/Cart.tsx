@@ -61,73 +61,77 @@ const Cart = () => {
               <p className="text-muted-foreground">Your cart is empty</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {cartItems.map((item) => (
-                <Card key={item.id} className="p-4 bg-card border-border">
-                  <div className="flex gap-4">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-24 h-24 object-cover rounded-lg bg-secondary/50"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-medium text-foreground">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Size: {item.size}</p>
-                      <p className="text-lg font-bold text-foreground mt-2">${item.price.toFixed(2)}</p>
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                {cartItems.map((item) => (
+                  <Card key={item.id} className="p-4 bg-card border-border">
+                    <div className="flex gap-4">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg bg-secondary/50"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-foreground">{item.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Size: {item.size}</p>
+                        <p className="text-lg font-bold text-foreground mt-2">${item.price.toFixed(2)}</p>
+                      </div>
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-3 mt-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="h-8 w-8"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span className="text-foreground font-medium min-w-[2rem] text-center">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="h-8 w-8"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="lg:col-span-1">
+                <Card className="p-6 bg-card border-border sticky top-20">
+                  <h2 className="text-xl font-semibold text-foreground mb-4">Order Summary</h2>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-foreground">
+                      <span>Subtotal</span>
+                      <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-foreground">
+                      <span>Shipping</span>
+                      <span>${shipping.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-border pt-3 mt-3">
+                      <div className="flex justify-between text-lg font-bold text-foreground">
+                        <span>Total</span>
+                        <span>${total.toFixed(2)}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 mt-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(item.id, -1)}
-                      className="h-8 w-8"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                    <span className="text-foreground font-medium min-w-[2rem] text-center">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(item.id, 1)}
-                      className="h-8 w-8"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <Button className="w-full mt-6" size="lg">
+                    CHECKOUT
+                  </Button>
                 </Card>
-              ))}
-
-              <Card className="p-4 bg-card border-border mt-6">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-foreground">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-foreground">
-                    <span>Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
-                  </div>
-                  <div className="border-t border-border pt-2 mt-2">
-                    <div className="flex justify-between text-lg font-bold text-foreground">
-                      <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <Button className="w-full mt-6" size="lg">
-                CHECKOUT
-              </Button>
+              </div>
             </div>
           )}
         </div>
