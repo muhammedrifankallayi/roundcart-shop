@@ -69,51 +69,53 @@ const Orders = () => {
       </header>
 
       <div className="px-4 py-6">
-        <div className="max-w-7xl mx-auto space-y-4">
+        <div className="max-w-7xl mx-auto">
           {orders.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No orders yet</p>
             </div>
           ) : (
-            orders.map((order) => (
-              <Card key={order.id} className="p-4 bg-card border-border">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-foreground">{order.orderNumber}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{order.date}</p>
-                  </div>
-                  <Badge className={statusColors[order.status]}>
-                    {order.status.toUpperCase()}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex gap-3">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg bg-secondary/50"
-                      />
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-foreground">{item.name}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity}</p>
-                        <p className="text-sm font-semibold text-foreground mt-1">
-                          ${item.price.toFixed(2)}
-                        </p>
-                      </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {orders.map((order) => (
+                <Card key={order.id} className="p-4 bg-card border-border flex flex-col">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{order.orderNumber}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{order.date}</p>
                     </div>
-                  ))}
-                </div>
-
-                <div className="border-t border-border mt-4 pt-4">
-                  <div className="flex justify-between text-foreground">
-                    <span className="font-semibold">Total</span>
-                    <span className="font-bold">${order.total.toFixed(2)}</span>
+                    <Badge className={statusColors[order.status]}>
+                      {order.status.toUpperCase()}
+                    </Badge>
                   </div>
-                </div>
-              </Card>
-            ))
+
+                  <div className="space-y-3 flex-1">
+                    {order.items.map((item) => (
+                      <div key={item.id} className="flex gap-3">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded-lg bg-secondary/50"
+                        />
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium text-foreground">{item.name}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity}</p>
+                          <p className="text-sm font-semibold text-foreground mt-1">
+                            ${item.price.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-border mt-4 pt-4">
+                    <div className="flex justify-between text-foreground">
+                      <span className="font-semibold">Total</span>
+                      <span className="font-bold">${order.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </div>
