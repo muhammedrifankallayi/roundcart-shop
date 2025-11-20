@@ -3,7 +3,7 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
 import { ShoppingBag, Shirt, Footprints, Watch, Glasses, Crown } from "lucide-react";
-import { Bell, ShoppingCart } from "lucide-react";
+import { User, ShoppingCart } from "lucide-react";
 
 import hoodieImg from "@/assets/hoodie.jpg";
 import tshirtImg from "@/assets/tshirt.jpg";
@@ -38,7 +38,7 @@ const Index = () => {
       {/* Header */}
       <header className="sticky top-0 bg-background border-b border-border z-40 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <Bell className="w-6 h-6 text-foreground" />
+          <User className="w-6 h-6 text-foreground" />
           <h1 className="text-lg font-semibold text-foreground">Feed</h1>
           <ShoppingCart className="w-6 h-6 text-foreground" />
         </div>
