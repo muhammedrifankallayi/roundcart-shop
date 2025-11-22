@@ -126,110 +126,123 @@ const Settings = () => {
         </div>
       </header>
 
-      <div className="max-w-md mx-auto px-4 py-8 space-y-6">
-        {/* Profile Section */}
-        <div className="flex flex-col items-center text-center space-y-4">
-          <div className="relative">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src="" />
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                {userData.name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <button
-              onClick={handleEditProfile}
-              className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
+      <div className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Profile Section - Left Side on Desktop */}
+          <div className="lg:col-span-1">
+            <div className="bg-card border border-border rounded-2xl p-6 sticky top-24">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="relative">
+                  <Avatar className="w-24 h-24 lg:w-32 lg:h-32">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="text-2xl lg:text-3xl bg-primary/10 text-primary">
+                      {userData.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    onClick={handleEditProfile}
+                    className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                </div>
+                <div>
+                  <h2 className="text-xl lg:text-2xl font-bold text-foreground">{userData.name}</h2>
+                  <p className="text-sm text-muted-foreground mt-1">{userData.email}</p>
+                </div>
+                <Button onClick={handleEditProfile} size="sm" className="rounded-full px-8 w-full">
+                  Edit Profile
+                </Button>
+              </div>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">{userData.name}</h2>
-            <p className="text-sm text-muted-foreground">{userData.email}</p>
+
+          {/* Settings Options - Right Side on Desktop */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Favorites & Purchases */}
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Favorites & Purchases</h3>
+              <div className="space-y-1">
+                {navigationItems.map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={item.onClick}
+                    className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="text-foreground font-medium">{item.label}</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Preferences */}
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Preferences</h3>
+              <div className="space-y-1">
+                {preferencesItems.map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={item.onClick}
+                    className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="text-foreground font-medium">{item.label}</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Account Settings */}
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Account Settings</h3>
+              <div className="space-y-1">
+                {accountItems.map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={item.onClick}
+                    className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="text-foreground font-medium">{item.label}</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* System */}
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">System</h3>
+              <div className="space-y-1">
+                {systemItems.map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={item.onClick}
+                    className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="text-foreground font-medium">{item.label}</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* App Version */}
+            <p className="text-center lg:text-left text-xs text-muted-foreground pt-2">App Version 2.3</p>
           </div>
-          <Button onClick={handleEditProfile} size="sm" className="rounded-full px-6">
-            Edit Profile
-          </Button>
         </div>
-
-        <Separator />
-
-        {/* Navigation Items */}
-        <div className="space-y-1">
-          {navigationItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={item.onClick}
-              className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-foreground font-medium">{item.label}</span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </button>
-          ))}
-        </div>
-
-        <Separator />
-
-        {/* Preferences */}
-        <div className="space-y-1">
-          {preferencesItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={item.onClick}
-              className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-foreground font-medium">{item.label}</span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </button>
-          ))}
-        </div>
-
-        <Separator />
-
-        {/* Account Settings */}
-        <div className="space-y-1">
-          {accountItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={item.onClick}
-              className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-foreground font-medium">{item.label}</span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </button>
-          ))}
-        </div>
-
-        <Separator />
-
-        {/* System */}
-        <div className="space-y-1">
-          {systemItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={item.onClick}
-              className="w-full flex items-center justify-between p-4 hover:bg-accent rounded-lg transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                <span className="text-foreground font-medium">{item.label}</span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </button>
-          ))}
-        </div>
-
-        {/* App Version */}
-        <p className="text-center text-xs text-muted-foreground pt-4">App Version 2.3</p>
       </div>
 
       <BottomNav />
