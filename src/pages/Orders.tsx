@@ -1,5 +1,6 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BottomNav } from "@/components/BottomNav";
@@ -107,11 +108,21 @@ const Orders = () => {
                     ))}
                   </div>
 
-                  <div className="border-t border-border mt-4 pt-4">
+                  <div className="border-t border-border mt-4 pt-4 space-y-3">
                     <div className="flex justify-between text-foreground">
                       <span className="font-semibold">Total</span>
                       <span className="font-bold">${order.total.toFixed(2)}</span>
                     </div>
+                    {(order.status === "shipping" || order.status === "delivered") && (
+                      <Button
+                        onClick={() => navigate(`/tracking/${order.id}`)}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <Package className="w-4 h-4 mr-2" />
+                        Track Shipment
+                      </Button>
+                    )}
                   </div>
                 </Card>
               ))}

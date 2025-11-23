@@ -17,8 +17,6 @@ const categories = [
   { icon: Shirt, label: "Tops" },
   { icon: Footprints, label: "Shoes" },
   { icon: ShoppingBag, label: "Bottoms" },
-  { icon: Watch, label: "Accessories" },
-  { icon: Glasses, label: "Eyewear" },
 ];
 
 const products = [
