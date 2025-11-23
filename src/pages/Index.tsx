@@ -37,7 +37,7 @@ const Index = () => {
       <header className="sticky top-0 bg-background border-b border-border z-40 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <User className="w-6 h-6 text-foreground" />
-          <h1 className="text-lg font-semibold text-foreground">Feed</h1>
+          <h1 className="text-lg font-semibold text-foreground">The Five Five</h1>
           <ShoppingCart className="w-6 h-6 text-foreground" />
         </div>
       </header>
