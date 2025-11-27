@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, CreditCard, Lock } from "lucide-react";
+import { ArrowLeft, CreditCard, Lock, Plus, MapPin, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 import hoodieImg from "@/assets/hoodie.jpg";
 import sneakersImg from "@/assets/sneakers.jpg";
@@ -20,10 +28,48 @@ interface CartItem {
   size: string;
 }
 
+interface Address {
+  id: string;
+  name: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Mock saved addresses
+  const [savedAddresses] = useState<Address[]>([
+    {
+      id: "1",
+      name: "John Doe",
+      phone: "+1 (555) 123-4567",
+      street: "123 Main Street, Apt 4B",
+      city: "New York",
+      state: "NY",
+      zip: "10001",
+      country: "United States"
+    },
+    {
+      id: "2",
+      name: "John Doe",
+      phone: "+1 (555) 987-6543",
+      street: "456 Park Avenue",
+      city: "Brooklyn",
+      state: "NY",
+      zip: "11201",
+      country: "United States"
+    }
+  ]);
+  
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(savedAddresses[0]?.id || "");
 
   // Mock cart items - in real app, this would come from global state
   const cartItems: CartItem[] = [
@@ -74,57 +120,118 @@ const Checkout = () => {
             {/* Checkout Form - Left Side */}
             <div className="lg:col-span-3">
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Shipping Information */}
+                {/* Shipping Address Selection */}
                 <Card className="p-6 bg-card border-border">
-                  <h2 className="text-xl font-semibold text-foreground mb-6">Shipping Information</h2>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" placeholder="John" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" placeholder="Doe" required />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="john@example.com" required />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" type="tel" placeholder="+1 (555) 000-0000" required />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Street Address</Label>
-                      <Input id="address" placeholder="123 Main Street" required />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City</Label>
-                        <Input id="city" placeholder="New York" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
-                        <Input id="state" placeholder="NY" required />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="zip">ZIP Code</Label>
-                        <Input id="zip" placeholder="10001" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="country">Country</Label>
-                        <Input id="country" placeholder="United States" required />
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-foreground">Shipping Address</h2>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          Add New
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Add New Address</DialogTitle>
+                          <DialogDescription>
+                            Enter your shipping address details
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="newFirstName">First Name</Label>
+                              <Input id="newFirstName" placeholder="John" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="newLastName">Last Name</Label>
+                              <Input id="newLastName" placeholder="Doe" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="newPhone">Phone Number</Label>
+                            <Input id="newPhone" type="tel" placeholder="+1 (555) 000-0000" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="newAddress">Street Address</Label>
+                            <Input id="newAddress" placeholder="123 Main Street" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="newCity">City</Label>
+                              <Input id="newCity" placeholder="New York" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="newState">State</Label>
+                              <Input id="newState" placeholder="NY" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="newZip">ZIP Code</Label>
+                              <Input id="newZip" placeholder="10001" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="newCountry">Country</Label>
+                              <Input id="newCountry" placeholder="United States" />
+                            </div>
+                          </div>
+                          <Button 
+                            className="w-full" 
+                            onClick={() => {
+                              toast({
+                                title: "Address saved",
+                                description: "Your new address has been added successfully.",
+                              });
+                              setIsDialogOpen(false);
+                            }}
+                          >
+                            Save Address
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {savedAddresses.map((address) => (
+                      <Card
+                        key={address.id}
+                        className={`p-4 cursor-pointer transition-all border-2 ${
+                          selectedAddressId === address.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        onClick={() => setSelectedAddressId(address.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            selectedAddressId === address.id
+                              ? "border-primary bg-primary"
+                              : "border-muted-foreground"
+                          }`}>
+                            {selectedAddressId === address.id && (
+                              <Check className="w-3 h-3 text-primary-foreground" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="font-semibold text-foreground">{address.name}</p>
+                                <p className="text-sm text-muted-foreground mt-1">{address.phone}</p>
+                              </div>
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <div className="mt-2 text-sm text-foreground">
+                              <p>{address.street}</p>
+                              <p>{address.city}, {address.state} {address.zip}</p>
+                              <p>{address.country}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 </Card>
 
