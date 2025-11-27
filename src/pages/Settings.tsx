@@ -105,10 +105,7 @@ const Settings = () => {
   ];
 
   const handleEditProfile = () => {
-    toast({
-      title: "Edit Profile",
-      description: "Profile editing feature coming soon",
-    });
+    navigate("/profile/edit");
   };
 
   return (

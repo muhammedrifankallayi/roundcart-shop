@@ -1,12 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MoreVertical, Star } from "lucide-react";
+import { ArrowLeft, MoreVertical, Star, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
 import { ProductCard } from "@/components/ProductCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 import hoodieImg from "@/assets/hoodie.jpg";
 import tshirtImg from "@/assets/tshirt.jpg";
@@ -35,13 +38,37 @@ const reviews = [
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const product = products.find(p => p.id === id);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
 
   if (!product) {
     return <div>Product not found</div>;
   }
+
+  const handleSubmitReview = () => {
+    if (rating === 0) {
+      toast({
+        title: "Rating Required",
+        description: "Please select a rating before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Review Submitted",
+      description: "Thank you for your feedback!",
+    });
+    
+    setShowReviewForm(false);
+    setRating(0);
+    setReviewText("");
+  };
 
   // Get related products (excluding current product)
   const relatedProducts = products.filter(p => p.id !== id).slice(0, 4);
@@ -157,6 +184,79 @@ const ProductDetail = () => {
                   </DialogHeader>
                   <ScrollArea className="h-[60vh] pr-4">
                     <div className="space-y-6">
+                      {/* Add Review Button */}
+                      {!showReviewForm ? (
+                        <Button 
+                          onClick={() => setShowReviewForm(true)}
+                          variant="outline"
+                          className="w-full gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Write a Review
+                        </Button>
+                      ) : (
+                        <div className="bg-secondary/20 p-4 rounded-lg space-y-4">
+                          <div>
+                            <label className="text-sm font-medium text-foreground mb-2 block">
+                              Your Rating
+                            </label>
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => setRating(star)}
+                                  className="p-1 hover:scale-110 transition-transform"
+                                >
+                                  <Star 
+                                    className={`w-6 h-6 ${
+                                      star <= rating 
+                                        ? 'fill-yellow-400 text-yellow-400' 
+                                        : 'text-muted-foreground'
+                                    }`} 
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="text-sm font-medium text-foreground mb-2 block">
+                              Your Review
+                            </label>
+                            <Textarea 
+                              placeholder="Share your experience with this product..."
+                              value={reviewText}
+                              onChange={(e) => setReviewText(e.target.value)}
+                              rows={4}
+                            />
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => {
+                                setShowReviewForm(false);
+                                setRating(0);
+                                setReviewText("");
+                              }}
+                              className="flex-1"
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              onClick={handleSubmitReview}
+                              className="flex-1"
+                            >
+                              Submit Review
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {showReviewForm && <Separator />}
+                      
+                      {/* Existing Reviews */}
                       {reviews.map((review) => (
                         <div key={review.id} className="border-b border-border pb-6 last:border-0">
                           <div className="flex items-start gap-4">
