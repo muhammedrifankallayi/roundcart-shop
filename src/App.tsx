@@ -9,6 +9,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Settings from "./pages/Settings";
+import ProfileEdit from "./pages/ProfileEdit";
 import ShipmentTracking from "./pages/ShipmentTracking";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/profile/edit" element={<ProfileEdit />} />
           <Route path="/tracking/:orderId" element={<ShipmentTracking />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
