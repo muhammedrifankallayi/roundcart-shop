@@ -20,12 +20,12 @@ const categories = [
 ];
 
 const products = [
-  { id: "1", name: "Graphic Hoodie", price: 110.59, image: hoodieImg, seller: "represent" },
-  { id: "2", name: "Essential Tee", price: 80.09, image: tshirtImg, seller: "janefish" },
-  { id: "3", name: "Classic Sneakers", price: 95.99, image: sneakersImg, seller: "mikecode" },
-  { id: "4", name: "Cotton Chinos", price: 75.55, image: pantsImg, seller: "joel" },
-  { id: "5", name: "Denim Jacket", price: 120.00, image: jacketImg, seller: "tphillips" },
-  { id: "6", name: "Pink Hoodie", price: 89.99, image: pinkHoodieImg, seller: "represent" },
+  { id: "1", name: "Graphic Hoodie", price: 110.59, comparePrice: 150.00, image: hoodieImg, seller: "represent" },
+  { id: "2", name: "Essential Tee", price: 80.09, comparePrice: 120.00, image: tshirtImg, seller: "janefish" },
+  { id: "3", name: "Classic Sneakers", price: 95.99, comparePrice: 135.00, image: sneakersImg, seller: "mikecode" },
+  { id: "4", name: "Cotton Chinos", price: 75.55, comparePrice: 100.00, image: pantsImg, seller: "joel" },
+  { id: "5", name: "Denim Jacket", price: 120.00, comparePrice: 180.00, image: jacketImg, seller: "tphillips" },
+  { id: "6", name: "Pink Hoodie", price: 89.99, comparePrice: 130.00, image: pinkHoodieImg, seller: "represent" },
 ];
 
 const Index = () => {
