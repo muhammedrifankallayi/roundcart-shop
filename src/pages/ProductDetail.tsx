@@ -19,12 +19,12 @@ import jacketImg from "@/assets/jacket.jpg";
 import pinkHoodieImg from "@/assets/pink-hoodie.jpg";
 
 const products = [
-  { id: "1", name: "Graphic Hoodie", price: 110.59, image: hoodieImg, sizes: ["S", "M", "L", "XL"], colors: ["Black", "White"], description: "Premium quality hoodie with unique graphic design. Made from 100% cotton for maximum comfort and durability. Perfect for casual wear or layering in colder weather." },
-  { id: "2", name: "Essential Tee", price: 80.09, image: tshirtImg, sizes: ["S", "M", "L"], colors: ["White", "Grey"], description: "Classic essential t-shirt crafted from soft, breathable fabric. A wardrobe staple that pairs well with any outfit. Machine washable and designed to maintain its shape." },
-  { id: "3", name: "Classic Sneakers", price: 95.99, image: sneakersImg, sizes: ["8", "9", "10", "11"], colors: ["White", "Black"], description: "Timeless sneakers featuring premium leather construction and cushioned insoles. Versatile design suitable for both athletic and casual wear. Durable rubber outsole for excellent traction." },
-  { id: "4", name: "Cotton Chinos", price: 75.55, image: pantsImg, sizes: ["30", "32", "34"], colors: ["Light Grey", "Navy"], description: "Tailored cotton chinos offering both comfort and style. Features a modern fit with just the right amount of stretch. Perfect for office or weekend wear." },
-  { id: "5", name: "Denim Jacket", price: 120.00, image: jacketImg, sizes: ["S", "M", "L"], colors: ["Blue", "Black"], description: "Classic denim jacket with a modern twist. Constructed from high-quality denim with authentic wash and distressing. A versatile piece that complements any casual wardrobe." },
-  { id: "6", name: "Pink Hoodie", price: 89.99, image: pinkHoodieImg, sizes: ["S", "M", "L"], colors: ["Pink", "Grey"], description: "Cozy hoodie in a trendy pink shade. Made from ultra-soft fleece material with a relaxed fit. Features adjustable drawstring hood and kangaroo pocket." },
+  { id: "1", name: "Graphic Hoodie", price: 110.59, image: hoodieImg, images: [hoodieImg, pinkHoodieImg, hoodieImg, pinkHoodieImg], sizes: ["S", "M", "L", "XL"], colors: ["Black", "White"], description: "Premium quality hoodie with unique graphic design. Made from 100% cotton for maximum comfort and durability. Perfect for casual wear or layering in colder weather." },
+  { id: "2", name: "Essential Tee", price: 80.09, image: tshirtImg, images: [tshirtImg, hoodieImg, tshirtImg, jacketImg], sizes: ["S", "M", "L"], colors: ["White", "Grey"], description: "Classic essential t-shirt crafted from soft, breathable fabric. A wardrobe staple that pairs well with any outfit. Machine washable and designed to maintain its shape." },
+  { id: "3", name: "Classic Sneakers", price: 95.99, image: sneakersImg, images: [sneakersImg, pantsImg, sneakersImg, tshirtImg], sizes: ["8", "9", "10", "11"], colors: ["White", "Black"], description: "Timeless sneakers featuring premium leather construction and cushioned insoles. Versatile design suitable for both athletic and casual wear. Durable rubber outsole for excellent traction." },
+  { id: "4", name: "Cotton Chinos", price: 75.55, image: pantsImg, images: [pantsImg, sneakersImg, pantsImg, jacketImg], sizes: ["30", "32", "34"], colors: ["Light Grey", "Navy"], description: "Tailored cotton chinos offering both comfort and style. Features a modern fit with just the right amount of stretch. Perfect for office or weekend wear." },
+  { id: "5", name: "Denim Jacket", price: 120.00, image: jacketImg, images: [jacketImg, pantsImg, jacketImg, hoodieImg], sizes: ["S", "M", "L"], colors: ["Blue", "Black"], description: "Classic denim jacket with a modern twist. Constructed from high-quality denim with authentic wash and distressing. A versatile piece that complements any casual wardrobe." },
+  { id: "6", name: "Pink Hoodie", price: 89.99, image: pinkHoodieImg, images: [pinkHoodieImg, hoodieImg, pinkHoodieImg, tshirtImg], sizes: ["S", "M", "L"], colors: ["Pink", "Grey"], description: "Cozy hoodie in a trendy pink shade. Made from ultra-soft fleece material with a relaxed fit. Features adjustable drawstring hood and kangaroo pocket." },
 ];
 
 const reviews = [
@@ -45,10 +45,12 @@ const ProductDetail = () => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Scroll to top when product changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSelectedImageIndex(0);
   }, [id]);
 
   if (!product) {
@@ -97,13 +99,39 @@ const ProductDetail = () => {
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         {/* Product Details - Responsive Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Image */}
-          <div className="aspect-square bg-secondary/50 rounded-2xl overflow-hidden lg:sticky lg:top-24 lg:h-fit">
-            <img 
-              src={product.image} 
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+          {/* Product Image Gallery */}
+          <div className="space-y-4 lg:sticky lg:top-24 lg:h-fit">
+            {/* Main Image */}
+            <div className="aspect-square bg-secondary/50 rounded-2xl overflow-hidden">
+              <img 
+                src={product.images?.[selectedImageIndex] || product.image} 
+                alt={product.name}
+                className="w-full h-full object-cover transition-opacity duration-300"
+              />
+            </div>
+            
+            {/* Thumbnail Gallery */}
+            {product.images && product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-3">
+                {product.images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`aspect-square bg-secondary/50 rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                      selectedImageIndex === index 
+                        ? 'border-primary shadow-lg' 
+                        : 'border-transparent'
+                    }`}
+                  >
+                    <img 
+                      src={img} 
+                      alt={`${product.name} view ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
