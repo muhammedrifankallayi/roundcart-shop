@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 import hoodieImg from "@/assets/hoodie.jpg";
@@ -45,6 +45,11 @@ const ProductDetail = () => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
+
+  // Scroll to top when product changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [id]);
 
   if (!product) {
     return <div>Product not found</div>;
