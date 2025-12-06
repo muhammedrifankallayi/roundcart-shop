@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Heart, 
@@ -23,14 +23,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { AuthHelper } from "@/lib/authHelper";
+import { UserData } from "@/data/models/user.model";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userData] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-  });
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    const user = AuthHelper.getUserData();
+    if (user) {
+      setUserData(user);
+    } else {
+      navigate("/");
+    }
+  }, [navigate]);
 
   const navigationItems = [
     { 
@@ -100,7 +108,11 @@ const Settings = () => {
     { 
       icon: LogOut, 
       label: "Log Out", 
-      onClick: () => toast({ title: "Logged Out", description: "You have been logged out" }) 
+      onClick: () => {
+        AuthHelper.clearAuthData();
+        toast({ title: "Logged Out", description: "You have been logged out" });
+        navigate("/");
+      }
     },
   ];
 
@@ -131,9 +143,9 @@ const Settings = () => {
               <div className="flex flex-col items-center text-center space-y-4">
                 <div className="relative">
                   <Avatar className="w-24 h-24 lg:w-32 lg:h-32">
-                    <AvatarImage src="" />
+                    <AvatarImage src={userData?.avatar} />
                     <AvatarFallback className="text-2xl lg:text-3xl bg-primary/10 text-primary">
-                      {userData.name.split(' ').map(n => n[0]).join('')}
+                      {userData?.name.split(' ').map(n => n[0]).join('') || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <button
@@ -144,8 +156,8 @@ const Settings = () => {
                   </button>
                 </div>
                 <div>
-                  <h2 className="text-xl lg:text-2xl font-bold text-foreground">{userData.name}</h2>
-                  <p className="text-sm text-muted-foreground mt-1">{userData.email}</p>
+                  <h2 className="text-xl lg:text-2xl font-bold text-foreground">{userData?.name}</h2>
+                  <p className="text-sm text-muted-foreground mt-1">{userData?.email}</p>
                 </div>
                 <Button onClick={handleEditProfile} size="sm" className="rounded-full px-8 w-full">
                   Edit Profile

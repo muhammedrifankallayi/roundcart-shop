@@ -3,59 +3,60 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BottomNav } from "@/components/BottomNav";
 
 import hoodieImg from "@/assets/hoodie.jpg";
 import tshirtImg from "@/assets/tshirt.jpg";
 import sneakersImg from "@/assets/sneakers.jpg";
+import { OrderService } from "@/data/services/order.service";
+import { IOrder } from "@/data/models/order.model";
+import { useEffect, useState } from "react";
+import { RESOURCE_URL } from "@/data/constants/constants";
 
-interface Order {
-  id: string;
-  orderNumber: string;
-  date: string;
-  status: "delivered" | "shipping" | "processing";
-  total: number;
-  items: {
-    id: string;
-    name: string;
-    image: string;
-    quantity: number;
-    price: number;
-  }[];
-}
-
-const orders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "#ORD-2024-001",
-    date: "Jan 15, 2024",
-    status: "delivered",
-    total: 206.58,
-    items: [
-      { id: "1", name: "Graphic Hoodie", image: hoodieImg, quantity: 1, price: 110.59 },
-      { id: "3", name: "Classic Sneakers", image: sneakersImg, quantity: 1, price: 95.99 },
-    ],
-  },
-  {
-    id: "2",
-    orderNumber: "#ORD-2024-002",
-    date: "Jan 20, 2024",
-    status: "shipping",
-    total: 80.09,
-    items: [
-      { id: "2", name: "Essential Tee", image: tshirtImg, quantity: 1, price: 80.09 },
-    ],
-  },
-];
 
 const statusColors = {
   delivered: "bg-green-500/20 text-green-500 border-green-500/20",
-  shipping: "bg-blue-500/20 text-blue-500 border-blue-500/20",
   processing: "bg-yellow-500/20 text-yellow-500 border-yellow-500/20",
+  pending: "bg-yellow-500/20 text-yellow-500 border-yellow-500/20",
+  shipped: "bg-purple-500/20 text-purple-500 border-purple-500/20",
 };
 
 const Orders = () => {
   const navigate = useNavigate();
+
+  const [orderList, setOrderList] = useState<IOrder[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
+
+
+  const getAllOrders = () => {
+    try {
+      OrderService.getListasync().then((response) => {
+        setOrderList(response.data);
+      },
+        (error) => {
+          console.log(error);
+        }
+      )
+    } catch (error) {
+      console.log(error);
+
+    }
+  }
+
+  useEffect(() => {
+    getAllOrders();
+  }, [])
+
+  const getFilteredOrders = () => {
+    if (filterStatus === "all") {
+      return orderList;
+    }
+    return orderList.filter(order => order.status === filterStatus);
+  };
+
+
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -71,18 +72,37 @@ const Orders = () => {
 
       <div className="px-4 py-6">
         <div className="max-w-7xl mx-auto">
-          {orders.length === 0 ? (
+          {/* Filter Tabs */}
+          <div className="mb-6">
+            <Tabs value={filterStatus} onValueChange={setFilterStatus}>
+              <TabsList className="grid w-full grid-cols-4 gap-2">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="pending">Pending</TabsTrigger>
+                <TabsTrigger value="shipped">Shipped</TabsTrigger>
+                <TabsTrigger value="delivered">Delivered</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {getFilteredOrders().length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No orders yet</p>
+              <p className="text-muted-foreground">No orders found</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {orders.map((order) => (
-                <Card key={order.id} className="p-4 bg-card border-border flex flex-col">
+              {getFilteredOrders()?.map((order) => (
+                <Card key={order._id} className="p-4 bg-card border-border flex flex-col">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-semibold text-foreground">{order.orderNumber}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">{order.date}</p>
+                      <h3 className="font-semibold text-foreground">{order._id}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {new Date(order.orderDate).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+
                     </div>
                     <Badge className={statusColors[order.status]}>
                       {order.status.toUpperCase()}
@@ -90,18 +110,18 @@ const Orders = () => {
                   </div>
 
                   <div className="space-y-3 flex-1">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="flex gap-3">
+                    {order?.items?.map((item) => (
+                      <div key={item.inventoryId._id} className="flex gap-3">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={RESOURCE_URL + '/' + item.inventoryId.item.images[0]}
+                          alt={item.inventoryId.item.name}
                           className="w-16 h-16 object-cover rounded-lg bg-secondary/50"
                         />
                         <div className="flex-1">
-                          <h4 className="text-sm font-medium text-foreground">{item.name}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity}</p>
+                          <h4 className="text-sm font-medium text-foreground">{item.inventoryId.item.name}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">Qty: {item.qty}</p>
                           <p className="text-sm font-semibold text-foreground mt-1">
-                            ${item.price.toFixed(2)}
+                            ${item.inventoryId.price.toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -111,11 +131,11 @@ const Orders = () => {
                   <div className="border-t border-border mt-4 pt-4 space-y-3">
                     <div className="flex justify-between text-foreground">
                       <span className="font-semibold">Total</span>
-                      <span className="font-bold">${order.total.toFixed(2)}</span>
+                      <span className="font-bold">${order.totalAmount.toFixed(2)}</span>
                     </div>
-                    {(order.status === "shipping" || order.status === "delivered") && (
+                    {(order.status === "shipped" || order.status === "delivered") && (
                       <Button
-                        onClick={() => navigate(`/tracking/${order.id}`)}
+                        onClick={() => navigate(`/tracking/${order._id}`)}
                         className="w-full"
                         variant="outline"
                       >

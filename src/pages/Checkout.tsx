@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, CreditCard, Lock, Plus, MapPin, Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, CreditCard, Lock, Plus, MapPin, Check, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,22 @@ import {
 
 import hoodieImg from "@/assets/hoodie.jpg";
 import sneakersImg from "@/assets/sneakers.jpg";
+import { IAddress } from "@/data/models/address.model";
+import { AddressService } from "@/data/services/address.service";
+import { ICart } from "@/data/models/cart.model";
+import { CartService } from "@/data/services/cart.service";
+import AddAddressForm from "@/components/AddAddressForm";
+import { RESOURCE_URL } from "@/data/constants/constants";
+
+
+import {load} from '@cashfreepayments/cashfree-js';
+import { CreateOrder } from "@/data/models/order.model";
+import { OrderService } from "@/data/services/order.service";
+import { CashFreeOrderCreate } from "@/data/models/cashfree.model";
+import { CashFreePaymentService } from "@/data/services/cashfree.service";
+
+
+
 
 interface CartItem {
   id: string;
@@ -26,64 +43,53 @@ interface CartItem {
   image: string;
   quantity: number;
   size: string;
+  variantId?: string;
 }
 
-interface Address {
-  id: string;
-  name: string;
-  phone: string;
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-}
 
 const Checkout = () => {
+
+let cashfree;
+var initializeSDK = async function () {          
+    cashfree = await load({
+        mode: "sandbox"
+    });
+};
+initializeSDK();
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string>("online");
   
-  // Mock saved addresses
-  const [savedAddresses] = useState<Address[]>([
-    {
-      id: "1",
-      name: "John Doe",
-      phone: "+1 (555) 123-4567",
-      street: "123 Main Street, Apt 4B",
-      city: "New York",
-      state: "NY",
-      zip: "10001",
-      country: "United States"
-    },
-    {
-      id: "2",
-      name: "John Doe",
-      phone: "+1 (555) 987-6543",
-      street: "456 Park Avenue",
-      city: "Brooklyn",
-      state: "NY",
-      zip: "11201",
-      country: "United States"
-    }
-  ]);
-  
-  const [selectedAddressId, setSelectedAddressId] = useState<string>(savedAddresses[0]?.id || "");
+  // State for addresses and cart
+  const [savedAddresses, setSavedAddresses] = useState<IAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [cart, setCart] = useState<ICart | null>(null);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
+  const [isLoadingCart, setIsLoadingCart] = useState(true);
 
-  // Mock cart items - in real app, this would come from global state
-  const cartItems: CartItem[] = [
-    { id: "1", name: "Graphic Hoodie", price: 110.59, image: hoodieImg, quantity: 1, size: "M" },
-    { id: "3", name: "Classic Sneakers", price: 95.99, image: sneakersImg, quantity: 1, size: "42" },
-  ];
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = 10.00;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+
+  const subtotal = cart?.items?.reduce((sum, item) => sum + item.inventoryId.price * item.qty, 0);
+  const shipping = 0.00;
+  const tax = subtotal * 0.0;
+  const codCharge = paymentMethod === "cod" ? 25 : 0;
+  const total = subtotal + shipping + tax + codCharge;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedAddressId) {
+      toast({
+        title: "Error",
+        description: "Please select a shipping address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
     // Simulate payment processing
@@ -96,6 +102,179 @@ const Checkout = () => {
       navigate("/orders");
     }, 2000);
   };
+
+  const getAllAddresses = async () => {
+    setIsLoadingAddresses(true);
+    try {
+      const addresses = await AddressService.getListasync();
+      setSavedAddresses(addresses.data);
+      if (addresses.data.length > 0) {
+        setSelectedAddressId(addresses.data[0]._id || "");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch addresses.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  const getCart = async () => {
+    setIsLoadingCart(true);
+    try {
+      const cartResponse = await CartService.getCartasync();
+      setCart(cartResponse.data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch cart data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingCart(false);
+    }
+  };
+
+  const handleAddNewAddress = async (formData: IAddress) => {
+    try {
+      await AddressService.createAsync(formData);
+      toast({
+        title: "Address saved",
+        description: "Your new address has been added successfully.",
+      });
+      setIsDialogOpen(false);
+      getAllAddresses();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save address.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    getAllAddresses();
+    getCart();
+  }, []);
+
+
+  const createCashFreeOrder = async (orderId:string,amount:number,mobile:string) => {
+
+try {
+   const userId = localStorage.getItem('userId') || '';
+    const body:CashFreeOrderCreate = {
+      amount:amount,
+      customerId: userId,
+      customerPhone:mobile,
+      orderId:orderId,
+    }
+
+    const response  =  await CashFreePaymentService.createOrder(body);
+    if(response.success){
+      if(response.data.payment_session_id)
+      doPayment(response.data.payment_session_id);
+    else
+      toast({
+        title: "Error",
+        description: "Failed to initiate payment session.",
+        variant: "destructive",
+      });
+    }
+  
+} catch (error) {
+  console.log(error);
+  
+}
+
+  }
+
+
+  const submitOrder = async()=>{
+    try {
+      const userId = localStorage.getItem('userId') || '';
+
+      if(!userId) {
+        toast({
+          title: "Error",
+          description: "User not logged in.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const orderBody:CreateOrder = {
+        userId: userId,
+        items:cart.items.map((item)=>({inventoryId:item.inventoryId._id,qty:item.qty})),
+        deliveryType:'standard',
+        discount:0,
+        orderDate:new Date().toISOString(),
+        paymentDetails:{
+          method: paymentMethod === "cod" ? "cod" : "card"
+        },
+        paymentStatus: paymentMethod === "cod" ? "pending" : "pending",
+        shippingAddressId:selectedAddressId,
+        totalAmount:total,
+        status: paymentMethod === "cod" ? "confirmed" : "processing",
+      }
+
+      const response  = await OrderService.createOrder(orderBody);
+      if(response.success){
+        if(paymentMethod === "cod") {
+          // For COD, order is saved and confirmed
+          toast({
+            title: "Order Confirmed",
+            description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
+            variant: "default",
+          });
+          setTimeout(() => navigate("/orders"), 1500);
+        } else {
+          // For online payment, proceed to Cashfree
+          toast({
+            title: "Order Created",
+            description: "Your order has been created successfully. Please complete the payment.",
+            variant: "default",
+          });
+          createCashFreeOrder(response.data._id, total, response.data.shippingAddressId.phone);
+        }
+      }
+      
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Error",
+        description: "Failed to create order.",
+        variant: "destructive",
+      });
+    }
+  }
+
+
+     const doPayment = async (sessionId:string) => {
+        let checkoutOptions = {
+            paymentSessionId: sessionId,
+            redirectTarget: "_modal",
+        };
+        cashfree.checkout(checkoutOptions).then((result) => {
+               console.log(result,"RESULT");
+            if(result.error){
+                // This will be true whenever user clicks on close icon inside the modal or any error happens during the payment
+                console.log("User has closed the popup or there is some payment error, Check for Payment Status");
+                console.log(result.error);
+            }
+            if(result.redirect){
+        
+             
+            }
+            if(result.paymentDetails){
+                // This will be called whenever the payment is completed irrespective of transaction status
+                console.log("Payment has been completed, Check for Payment Status");
+                console.log(result.paymentDetails.paymentMessage);
+            }
+        });
+    };
 
   return (
     <div className="min-h-screen bg-background">
@@ -138,130 +317,105 @@ const Checkout = () => {
                             Enter your shipping address details
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="newFirstName">First Name</Label>
-                              <Input id="newFirstName" placeholder="John" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="newLastName">Last Name</Label>
-                              <Input id="newLastName" placeholder="Doe" />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="newPhone">Phone Number</Label>
-                            <Input id="newPhone" type="tel" placeholder="+1 (555) 000-0000" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="newAddress">Street Address</Label>
-                            <Input id="newAddress" placeholder="123 Main Street" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="newCity">City</Label>
-                              <Input id="newCity" placeholder="New York" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="newState">State</Label>
-                              <Input id="newState" placeholder="NY" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="newZip">ZIP Code</Label>
-                              <Input id="newZip" placeholder="10001" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="newCountry">Country</Label>
-                              <Input id="newCountry" placeholder="United States" />
-                            </div>
-                          </div>
-                          <Button 
-                            className="w-full" 
-                            onClick={() => {
-                              toast({
-                                title: "Address saved",
-                                description: "Your new address has been added successfully.",
-                              });
-                              setIsDialogOpen(false);
-                            }}
-                          >
-                            Save Address
-                          </Button>
-                        </div>
+                        <AddAddressForm 
+                          onSubmit={handleAddNewAddress}
+                          onCancel={() => setIsDialogOpen(false)}
+                        />
                       </DialogContent>
                     </Dialog>
                   </div>
                   
-                  <div className="space-y-3">
-                    {savedAddresses.map((address) => (
-                      <Card
-                        key={address.id}
-                        className={`p-4 cursor-pointer transition-all border-2 ${
-                          selectedAddressId === address.id
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        onClick={() => setSelectedAddressId(address.id)}
+                  {isLoadingAddresses ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Loading addresses...
+                    </div>
+                  ) : savedAddresses.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">No addresses found</p>
+                      <Button 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={() => setIsDialogOpen(true)}
                       >
-                        <div className="flex items-start gap-3">
-                          <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            selectedAddressId === address.id
-                              ? "border-primary bg-primary"
-                              : "border-muted-foreground"
-                          }`}>
-                            {selectedAddressId === address.id && (
-                              <Check className="w-3 h-3 text-primary-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <p className="font-semibold text-foreground">{address.name}</p>
-                                <p className="text-sm text-muted-foreground mt-1">{address.phone}</p>
+                        <Plus className="w-4 h-4" />
+                        Add Your First Address
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {savedAddresses&&savedAddresses?.map((address) => (
+                        <Card
+                          key={address._id}
+                          className={`p-4 cursor-pointer transition-all border-2 ${
+                            selectedAddressId === address._id
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                          onClick={() => setSelectedAddressId(address._id || "")}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                              selectedAddressId === address._id
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground"
+                            }`}>
+                              {selectedAddressId === address._id && (
+                                <Check className="w-3 h-3 text-primary-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="font-semibold text-foreground">{address.fullName}</p>
+                                  <p className="text-sm text-muted-foreground mt-1">{address.phone}</p>
+                                </div>
+                                <MapPin className="w-4 h-4 text-muted-foreground" />
                               </div>
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                            <div className="mt-2 text-sm text-foreground">
-                              <p>{address.street}</p>
-                              <p>{address.city}, {address.state} {address.zip}</p>
-                              <p>{address.country}</p>
+                              <div className="mt-2 text-sm text-foreground">
+                                <p>{address.addressLine1}</p>
+                                {address.addressLine2 && <p>{address.addressLine2}</p>}
+                                <p>{address.city}, {address.state} {address.pinCode}</p>
+                                {address.country && <p>{address.country}</p>}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </Card>
 
-                {/* Payment Information */}
+                {/* Payment Method Selection */}
                 <Card className="p-6 bg-card border-border">
                   <div className="flex items-center gap-2 mb-6">
                     <CreditCard className="w-5 h-5 text-foreground" />
-                    <h2 className="text-xl font-semibold text-foreground">Payment Information</h2>
+                    <h2 className="text-xl font-semibold text-foreground">Payment Method</h2>
                   </div>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cardNumber">Card Number</Label>
-                      <Input id="cardNumber" placeholder="1234 5678 9012 3456" required />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="expiry">Expiry Date</Label>
-                        <Input id="expiry" placeholder="MM/YY" required />
+                    <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                      {/* Online Payment Option */}
+                      <div className="flex items-center space-x-3 p-4 border-2 border-border rounded-lg cursor-pointer hover:border-primary/50 transition-all"
+                        onClick={() => setPaymentMethod("online")}
+                      >
+                        <RadioGroupItem value="online" id="online" />
+                        <Label htmlFor="online" className="flex-1 cursor-pointer">
+                          <div className="font-semibold text-foreground">Online Payment</div>
+                          <p className="text-sm text-muted-foreground">Pay securely using credit/debit card</p>
+                        </Label>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvv">CVV</Label>
-                        <Input id="cvv" placeholder="123" required />
+
+                      {/* Cash on Delivery Option */}
+                      <div className="flex items-center space-x-3 p-4 border-2 border-border rounded-lg cursor-pointer hover:border-primary/50 transition-all"
+                        onClick={() => setPaymentMethod("cod")}
+                      >
+                        <RadioGroupItem value="cod" id="cod" />
+                        <Label htmlFor="cod" className="flex-1 cursor-pointer">
+                          <div className="font-semibold text-foreground">Cash on Delivery</div>
+                          <p className="text-sm text-muted-foreground">Pay when you receive your order</p>
+                          <p className="text-sm font-medium text-green-600 mt-1">+ ₹25 extra charge</p>
+                        </Label>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="cardName">Name on Card</Label>
-                      <Input id="cardName" placeholder="John Doe" required />
-                    </div>
+                    </RadioGroup>
                   </div>
                 </Card>
 
@@ -270,8 +424,9 @@ const Checkout = () => {
                   size="lg" 
                   className="w-full"
                   disabled={isProcessing}
+                  onClick={()=>submitOrder()}
                 >
-                  {isProcessing ? "Processing..." : `PAY $${total.toFixed(2)}`}
+                  {isProcessing ? "Processing..." : `CONFIRM ORDER - ₹${total.toFixed(2)}`}
                 </Button>
               </form>
             </div>
@@ -282,23 +437,23 @@ const Checkout = () => {
                 <h2 className="text-xl font-semibold text-foreground mb-6">Order Summary</h2>
                 
                 <div className="space-y-4 mb-6">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-4">
+                  {cart?.items?.map((item) => (
+                    <div key={item.inventoryId._id} className="flex gap-4">
                       <div className="relative">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={ RESOURCE_URL +'/'+ item.inventoryId.item.images[0]}
+                          alt={item.inventoryId.item.name}
                           className="w-20 h-20 object-cover rounded-lg bg-secondary/50"
                         />
                         <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                          {item.quantity}
+                          {item.qty}
                         </div>
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-foreground">{item.name}</h3>
-                        <p className="text-sm text-muted-foreground">Size: {item.size}</p>
+                        <h3 className="font-medium text-foreground">{item.inventoryId.item.name}</h3>
+                        <p className="text-sm text-muted-foreground">Size: {item.inventoryId.size.code}</p>
                         <p className="text-sm font-bold text-foreground mt-1">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ₹{(item.inventoryId.price * item.qty).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -310,22 +465,28 @@ const Checkout = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between text-foreground">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>₹{subtotal?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-foreground">
                     <span>Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
+                    <span>₹{shipping.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-foreground">
                     <span>Tax</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>₹{tax.toFixed(2)}</span>
                   </div>
+                  {paymentMethod === "cod" && (
+                    <div className="flex justify-between text-foreground">
+                      <span>COD Charge</span>
+                      <span className="text-green-600 font-medium">+ ₹{codCharge.toFixed(2)}</span>
+                    </div>
+                  )}
                   
                   <Separator className="my-4" />
                   
                   <div className="flex justify-between text-lg font-bold text-foreground">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>₹{total.toFixed(2)}</span>
                   </div>
                 </div>
 

@@ -17,6 +17,19 @@ import sneakersImg from "@/assets/sneakers.jpg";
 import pantsImg from "@/assets/pants.jpg";
 import jacketImg from "@/assets/jacket.jpg";
 import pinkHoodieImg from "@/assets/pink-hoodie.jpg";
+import { Color } from "@/data/models/color.model";
+import { ColorService } from "@/data/services/color.service";
+import { SizeService } from "@/data/services/size.service";
+import { Size } from "@/data/models/size.model";
+import { Item } from "@/data/models/item.model";
+import { ItemService } from "@/data/services/item.service";
+import { RESOURCE_URL } from "@/data/constants/constants";
+import { ICart } from "@/data/models/cart.model";
+import { set } from "date-fns";
+import { CartService } from "@/data/services/cart.service";
+import { Variant } from "@/data/models/variants.model";
+import { VariantsService } from "@/data/services/variantService";
+import { formatInventory, formatInventoryRecord, InventoryFormatted, InventoryFormattedRecordMap } from "@/data/common-functions/variantsMapper";
 
 const products = [
   { id: "1", name: "Graphic Hoodie", price: 110.59, image: hoodieImg, images: [hoodieImg, pinkHoodieImg, hoodieImg, pinkHoodieImg], sizes: ["S", "M", "L", "XL"], colors: ["Black", "White"], description: "Premium quality hoodie with unique graphic design. Made from 100% cotton for maximum comfort and durability. Perfect for casual wear or layering in colder weather." },
@@ -39,7 +52,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const product = products.find(p => p.id === id);
+ 
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -47,13 +60,76 @@ const ProductDetail = () => {
   const [reviewText, setReviewText] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
+  const [colorList, setColorList] = useState<Color[]>([]);
+  const [sizeList, setSizeList] = useState<Size[]>([]);
+  const [itemList, setItemList] = useState<Item[]>([]);
+  const [item, setItem] = useState<Item | null>(null);
+  const [variantList, setVariantList] = useState<Variant[]>([]);
+  const [formatedVariantRecord, setFormatedVariantRecord] = useState<InventoryFormattedRecordMap>({});
+  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
+  const getColorList = async () => {
+    try {
+      const response = await ColorService.getListasync();
+      setColorList(response.data);
+    } catch (error) {
+      console.error('Error fetching colors:', error);
+    }
+  };
+
+  const getSizeList = async () => {
+    try {
+      const response = await SizeService.getListasync();
+      setSizeList(response.data);
+      // Set first size as default
+      if (response.data && response.data.length > 0) {
+        setSelectedSize(response.data[0]._id);
+      }
+    } catch (error) {
+      console.error('Error fetching sizes:', error);
+    }
+  };
+
+  const getVariantList = async (id:string) => {
+    try {
+      if(id===null)   return;
+      const response = await VariantsService.getListByItemId(id);
+      setVariantList(response.data);
+      const formatted = formatInventoryRecord(response.data);
+      setFormatedVariantRecord(formatted);
+      
+      
+    } catch (error) {
+      console.error('Error fetching variants:', error);
+    }
+  };
+
   // Scroll to top when product changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setSelectedImageIndex(0);
+    getColorList();
+    getSizeList();
+
+
+    const fetchItems = async () => {
+      try {
+        const response = await ItemService.getItemList();
+        setItemList(response.data);
+        const foundItem = response.data.find(p => p._id === id);
+        setItem(foundItem || null);
+   if(foundItem){
+         getVariantList(foundItem._id);
+   }else{
+    alert("Item not found");
+   }
+      } catch (error) {
+        console.error('Error fetching items:', error);
+      }
+    };
+    fetchItems();
   }, [id]);
 
-  if (!product) {
+  if (!item) {
     return <div>Product not found</div>;
   }
 
@@ -78,10 +154,109 @@ const ProductDetail = () => {
   };
 
   // Get related products (excluding current product)
-  const relatedProducts = products.filter(p => p.id !== id).slice(0, 4);
+  const relatedProducts = itemList.filter(p => p._id !== id).slice(0, 4);
   
   const averageRating = (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1);
 
+  const addToCart = () =>{
+  try{
+    if(!selectedSize){
+      toast({
+        title: "Size Required",
+        description: "Please select a size before adding to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(!selectedColor){
+      toast({
+        title: "Color Required",
+        description: "Please select a color before adding to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userId = localStorage.getItem('userId') || '';
+
+
+   
+
+    const cartService = CartService;
+
+    if(userId!==''){
+         cartService.addToCartasync(item._id,1).then((response)=>{
+    if(response.success){
+            toast({
+            title: "Added to Cart",
+            description: "Item has been added to your cart.",
+          });
+    }
+         }).catch((error)=>{
+          console.error('Error adding to cart:', error);
+          toast({
+            title: "Error",
+            description: "Failed to add item to cart.",
+            variant: "destructive",
+          });
+         });
+    }else{
+      const tempCart = localStorage.getItem('guestCart'); 
+     if(tempCart){
+        const cartObj: ICart = JSON.parse(tempCart);
+        const existingItem = cartObj.items.find(i => i.inventoryId._id === item._id);
+        if (existingItem) {
+          existingItem.qty += 1;
+        } else {
+          const variantItem = variantList.find(v=>v._id===selectedVariantId);
+          if(!variantItem) throw new Error("Variant not found");
+          cartObj.items.push({ inventoryId: variantItem, qty: 1 });
+        }
+        localStorage.setItem('guestCart', JSON.stringify(cartObj));
+                toast({
+          title: "Added to Cart",
+          description: "Item has been added to your cart.",
+        });
+      }else{
+             const variantItem = variantList.find(v=>v._id===selectedVariantId);
+        const newCart: ICart = {
+          _id: 'guest_cart',
+          userId: 'guest',
+          items: [{ inventoryId: variantItem, qty: 1 }],
+          totalAmount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        toast({
+          title: "Added to Cart",
+          description: "Item has been added to your cart.",
+        });
+        localStorage.setItem('guestCart', JSON.stringify(newCart));
+      }
+    }
+
+    const isStockAvailable = (size:string)=>{
+      const sizeRecord = formatedVariantRecord[size];
+      if(!sizeRecord) return false;
+      const colorRecord = sizeRecord.colors[selectedColor];
+      if(!colorRecord) return false;
+      return colorRecord.totalStock > 0;
+    }
+    
+
+
+
+  }catch(error){
+    console.error('Error adding to cart:', error);
+    toast({
+      title: "Error",
+      description: "Failed to add item to cart.",
+      variant: "destructive",
+    });
+  }
+
+}
+  
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -104,16 +279,16 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className="aspect-square bg-secondary/50 rounded-2xl overflow-hidden">
               <img 
-                src={product.images?.[selectedImageIndex] || product.image} 
-                alt={product.name}
+                src={ RESOURCE_URL +'/'+ (item.images?.[selectedImageIndex] || item.images?.[0])} 
+                alt={item.name}
                 className="w-full h-full object-cover transition-opacity duration-300"
               />
             </div>
             
             {/* Thumbnail Gallery */}
-            {product.images && product.images.length > 1 && (
+            {item.images && item.images.length > 1 && (
               <div className="grid grid-cols-4 gap-3">
-                {product.images.map((img, index) => (
+                {item.images.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
@@ -124,8 +299,8 @@ const ProductDetail = () => {
                     }`}
                   >
                     <img 
-                      src={img} 
-                      alt={`${product.name} view ${index + 1}`}
+                      src={ RESOURCE_URL +'/'+ img} 
+                      alt={`${item.name} view ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -138,7 +313,7 @@ const ProductDetail = () => {
           <div className="space-y-6">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-foreground">{product.name}</h2>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">{item.name}</h2>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
@@ -150,7 +325,7 @@ const ProductDetail = () => {
                   </div>
                   <span className="text-sm text-muted-foreground">({averageRating})</span>
                 </div>
-                <p className="text-3xl md:text-4xl font-bold text-foreground mt-3">${product.price.toFixed(2)}</p>
+                <p className="text-3xl md:text-4xl font-bold text-foreground mt-3">${item.price.toFixed(2)}</p>
               </div>
               <button className="p-2">
                 <MoreVertical className="w-5 h-5 text-muted-foreground" />
@@ -160,26 +335,35 @@ const ProductDetail = () => {
             {/* Description */}
             <div className="border-t border-border pt-6">
               <h3 className="text-lg font-semibold text-foreground mb-2">Description</h3>
-              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+              <p className="text-muted-foreground leading-relaxed">{item.description}</p>
             </div>
 
             {/* Sizes */}
             <div className="border-t border-border pt-6">
               <h3 className="text-sm font-medium text-foreground mb-3">Size</h3>
               <div className="flex gap-2 flex-wrap">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 rounded-full transition-colors ${
-                      selectedSize === size 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {sizeList.map((size) => {
+                  const isSizeDisabled = !formatedVariantRecord[size._id] || Object.values(formatedVariantRecord[size._id]?.colors || {}).every((c: any) => c.totalStock === 0);
+                  return (
+                    <button
+                      key={size._id}
+                      disabled={isSizeDisabled}
+                      onClick={() => { setSelectedSize(size._id); setSelectedColor(""); setSelectedVariantId(formatedVariantRecord[size._id].inventoryId); }}
+                      className={`px-4 py-2 rounded-full transition-colors relative ${
+                        selectedSize === size._id 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                      } ${isSizeDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {size.code}
+                      {isSizeDisabled && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-full h-0.5 bg-current transform -rotate-45"></div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -187,19 +371,23 @@ const ProductDetail = () => {
             <div className="border-t border-border pt-6">
               <h3 className="text-sm font-medium text-foreground mb-3">Color</h3>
               <div className="flex gap-2 flex-wrap">
-                {product.colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 rounded-full transition-colors ${
-                      selectedColor === color 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary text-secondary-foreground hover:bg-accent'
-                    }`}
-                  >
-                    {color}
-                  </button>
-                ))}
+                {colorList.map((color) => {
+                  const isDisabled = !formatedVariantRecord[selectedSize]?.colors[color._id] || formatedVariantRecord[selectedSize]?.colors[color._id].totalStock===0;
+                  return (
+                    <button
+                      key={color._id}
+                      disabled={isDisabled}
+                      onClick={() => { setSelectedColor(color._id); setSelectedVariantId(formatedVariantRecord[selectedSize].colors[color._id].inventoryId); }}
+                      className={`px-4 py-2 rounded-full transition-colors ${
+                        selectedColor === color._id 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                      } ${isDisabled ? 'line-through opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {color.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -323,7 +511,8 @@ const ProductDetail = () => {
 
             {/* Add to Cart Button */}
             <div className="sticky bottom-24 lg:bottom-0 bg-background pt-6 border-t border-border">
-              <Button 
+              <Button  onClick={()=>addToCart()}
+              disabled={!selectedVariantId || !selectedSize || !selectedColor}
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-6 text-base font-semibold rounded-full"
               >
                 ADD TO CART
@@ -338,11 +527,13 @@ const ProductDetail = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {relatedProducts.map((relatedProduct) => (
               <ProductCard
-                key={relatedProduct.id}
-                id={relatedProduct.id}
+                key={relatedProduct._id}
+                _id={relatedProduct._id}
                 name={relatedProduct.name}
                 price={relatedProduct.price}
-                image={relatedProduct.image}
+                images={relatedProduct.images}
+                compareAtPrice={relatedProduct.compareAtPrice}
+                {...relatedProduct}
               />
             ))}
           </div>
