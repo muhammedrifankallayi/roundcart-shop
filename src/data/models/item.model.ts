@@ -1,8 +1,8 @@
 
 
 export interface Item {
-    _id: string;
-name: string;
+  _id: string;
+  name: string;
   description: string;
   slug: string;
   categoryId: string; // ObjectId as string
@@ -16,5 +16,16 @@ name: string;
   isFeatured: boolean;
   createdAt: Date;
   updatedAt: Date;
+  reviews: IItemReview[];
 }
 
+
+
+export interface IItemReview {
+  userId: string;
+  rating: number;
+  comment?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _id?: string;
+}

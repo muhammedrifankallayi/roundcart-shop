@@ -113,8 +113,18 @@ All colors MUST be HSL.
   }
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @layer utilities {
   .animate-rainbow-spin {
     animation: rainbow-spin 3s linear infinite;
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
   }
 }

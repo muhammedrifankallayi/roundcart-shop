@@ -32,6 +32,8 @@ import { CreateOrder } from "@/data/models/order.model";
 import { OrderService } from "@/data/services/order.service";
 import { CashFreeOrderCreate } from "@/data/models/cashfree.model";
 import { CashFreePaymentService } from "@/data/services/cashfree.service";
+import { LottieAnimation } from "@/components/LottieAnimation";
+import congratsAnimation from "@/assets/lotties/congrats.json";
 
 
 
@@ -69,6 +71,7 @@ initializeSDK();
   const [cart, setCart] = useState<ICart | null>(null);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
   const [isLoadingCart, setIsLoadingCart] = useState(true);
+  const [showCongratsAnimation, setShowCongratsAnimation] = useState(false);
 
 
 
@@ -224,12 +227,15 @@ try {
       if(response.success){
         if(paymentMethod === "cod") {
           // For COD, order is saved and confirmed
+          setShowCongratsAnimation(true);
+         
           toast({
             title: "Order Confirmed",
             description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
             variant: "default",
           });
-          setTimeout(() => navigate("/orders"), 1500);
+          CartService.clearCartasync().then(()=>{});
+          setTimeout(() => navigate("/orders"), 3000);
         } else {
           // For online payment, proceed to Cashfree
           toast({
@@ -272,12 +278,30 @@ try {
                 // This will be called whenever the payment is completed irrespective of transaction status
                 console.log("Payment has been completed, Check for Payment Status");
                 console.log(result.paymentDetails.paymentMessage);
+                // Check if payment was successful
+                if(result.paymentDetails.paymentStatus === 'SUCCESS' || result.paymentDetails.paymentStatus === 'COMPLETED'){
+                  setShowCongratsAnimation(true);
+                  CartService.clearCartasync().then(()=>{});
+                  toast({
+                    title: "Order Confirmed",
+                    description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
+                    variant: "default",
+                  });
+                  setTimeout(() => navigate("/orders"), 3000);
+                }
             }
         });
     };
 
   return (
     <div className="min-h-screen bg-background">
+      {showCongratsAnimation && (
+        <LottieAnimation
+          animationData={congratsAnimation}
+          duration={3000}
+          onComplete={() => setShowCongratsAnimation(false)}
+        />
+      )}
       <header className="sticky top-0 bg-background border-b border-border z-40 px-4 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-foreground hover:text-muted-foreground transition-colors">
@@ -441,7 +465,7 @@ try {
                     <div key={item.inventoryId._id} className="flex gap-4">
                       <div className="relative">
                         <img
-                          src={ RESOURCE_URL +'/'+ item.inventoryId.item.images[0]}
+                          src={ RESOURCE_URL +''+ item.inventoryId.item.images[0]}
                           alt={item.inventoryId.item.name}
                           className="w-20 h-20 object-cover rounded-lg bg-secondary/50"
                         />

@@ -4,6 +4,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthModal } from "@/components/AuthModal";
 import { MusicPlayer } from "@/components/MusicPlayer";
+import { Loader, ProductCardSkeleton } from "@/components/ui/loader";
 import { ShoppingBag, Shirt, Footprints, Watch, Glasses, Crown } from "lucide-react";
 import { User, ShoppingCart, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +43,7 @@ const Index = () => {
   const [itemList, setItemList] = useState<Item[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -53,13 +55,16 @@ const Index = () => {
   }, []);
 
   const itemService = ItemService;
-  useEffect(() => { 
+  useEffect(() => {
     const fetchItems = async () => {
+      setIsLoading(true);
       try {
         const response = await itemService.getItemList();
         setItemList(response.data);
       } catch (error) {
         console.error('Error fetching items:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchItems();
@@ -80,8 +85,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
+      <AuthModal
+        isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onAuthSuccess={handleAuthSuccess}
       />
@@ -124,11 +129,19 @@ const Index = () => {
 
       {/* Products Grid */}
       <div className="px-4 py-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {itemList.map((product) => (
-            <ProductCard key={product._id} {...product} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, index) => (
+              <ProductCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {itemList.map((product) => (
+              <ProductCard key={product._id} {...product} />
+            ))}
+          </div>
+        )}
       </div>
 
       <BottomNav />

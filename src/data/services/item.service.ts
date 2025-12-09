@@ -1,6 +1,6 @@
 import axiosInstance from '@/data/axios/axiosInstance';
 import { ApiResponse } from '@/data/models/common.model';
-import { Item } from '@/data/models/item.model';
+import { IItemReview, Item } from '@/data/models/item.model';
 import { URL_PREFIX } from '../constants/constants';
 
 export const ItemService = {
@@ -32,4 +32,24 @@ export const ItemService = {
       throw error;
     }
   },
+
+  addItemReview: async (itemId: string, itemReview: IItemReview): Promise<ApiResponse<IItemReview>> => {
+    try {
+      const response = await axiosInstance.post(URL_PREFIX.itemReviews + `/${itemId}/reviews`, itemReview);
+      return response as unknown as ApiResponse<IItemReview>;
+    } catch (error) {
+      console.error('Error adding item review:', error);
+      throw error;
+    }
+  },
+  getAllReviews: async (itemId: string): Promise<ApiResponse<IItemReview[]>> => {
+    try {
+      const response = await axiosInstance.get(URL_PREFIX.itemReviews + `/${itemId}/reviews`);
+      return response as unknown as ApiResponse<IItemReview[]>;
+    } catch (error) {
+      console.error('Error fetching item reviews:', error);
+      throw error;
+    }
+  },
+
 };

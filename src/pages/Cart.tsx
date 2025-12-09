@@ -159,7 +159,7 @@ const userId = localStorage.getItem('userId');
                     <Card key={item.inventoryId._id} className="p-4 bg-card border-border">
                       <div className="flex gap-4">
                         <img
-                          src={ RESOURCE_URL+'/'+item.inventoryId.item.images[0] || hoodieImg}
+                          src={ RESOURCE_URL+''+item.inventoryId.item.images[0] || hoodieImg}
                           alt={item.inventoryId.item.name}
                           className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg bg-secondary/50"
                         />

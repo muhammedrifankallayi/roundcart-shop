@@ -13,7 +13,7 @@ export const ProductCard = ({ _id, name, price, compareAtPrice, images,  }: Item
       <Card className="bg-card border-border overflow-hidden hover:bg-accent transition-colors mb-3">
         <div className="aspect-square bg-secondary/50 overflow-hidden">
           <img 
-            src={`${RESOURCE_URL}/${images[0]}`} 
+            src={`${RESOURCE_URL}${images[0]}`} 
             alt={name}
             className="w-full h-full object-cover"
           />
@@ -22,9 +22,17 @@ export const ProductCard = ({ _id, name, price, compareAtPrice, images,  }: Item
       <div>
         <h3 className="text-sm font-medium text-foreground mb-1">{name}</h3>
   
-        <div className="flex items-center gap-2">
-          {compareAtPrice && (
-            <p className="text-sm text-muted-foreground line-through">₹{compareAtPrice.toFixed(2)}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {compareAtPrice && compareAtPrice > 0 && (
+            <>
+              <p className="text-sm text-muted-foreground line-through">₹{compareAtPrice.toFixed(2)}</p>
+              {(() => {
+                const offerPercentage = Math.round(((compareAtPrice - price) / compareAtPrice) * 100);
+                return offerPercentage > 0 ? (
+                  <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded">{offerPercentage}% OFF</span>
+                ) : null;
+              })()}
+            </>
           )}
           <p className="text-lg font-bold text-foreground">₹{price.toFixed(2)}</p>
         </div>

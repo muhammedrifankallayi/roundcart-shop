@@ -116,7 +116,7 @@ const Orders = () => {
                     {order?.items?.map((item) => (
                       <div key={item.inventoryId._id} className="flex gap-3">
                         <img
-                          src={RESOURCE_URL + '/' + item.inventoryId.item.images[0]}
+                          src={RESOURCE_URL + '' + item.inventoryId.item.images[0]}
                           alt={item.inventoryId.item.name}
                           className="w-16 h-16 object-cover rounded-lg bg-secondary/50"
                         />
