@@ -24,9 +24,9 @@ export const ProductCard = ({ _id, name, price, compareAtPrice, images,  }: Item
   
         <div className="flex items-center gap-2">
           {compareAtPrice && (
-            <p className="text-sm text-muted-foreground line-through">${compareAtPrice.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground line-through">₹{compareAtPrice.toFixed(2)}</p>
           )}
-          <p className="text-lg font-bold text-foreground">${price.toFixed(2)}</p>
+          <p className="text-lg font-bold text-foreground">₹{price.toFixed(2)}</p>
         </div>
       </div>
     </div>

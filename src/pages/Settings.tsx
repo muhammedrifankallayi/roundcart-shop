@@ -22,23 +22,29 @@ import { BottomNav } from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AuthHelper } from "@/lib/authHelper";
 import { UserData } from "@/data/models/user.model";
+import { AuthModal } from "@/components/AuthModal";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const user = AuthHelper.getUserData();
     if (user) {
       setUserData(user);
-    } else {
-      navigate("/");
     }
-  }, [navigate]);
+  }, []);
+
+  const handleAuthSuccess = (userData: UserData) => {
+    setUserData(userData);
+    setIsAuthModalOpen(false);
+  };
 
   const navigationItems = [
     { 
@@ -122,6 +128,13 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
+
       {/* Header */}
       <header className="sticky top-0 bg-background border-b border-border z-40 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between">
@@ -136,6 +149,20 @@ const Settings = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+        {!userData ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Card className="p-8 max-w-md w-full text-center">
+              <Lock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Please Login</h2>
+              <p className="text-muted-foreground mb-6">
+                You need to be logged in to view your profile and settings.
+              </p>
+              <Button onClick={() => setIsAuthModalOpen(true)} size="lg" className="w-full">
+                Login
+              </Button>
+            </Card>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Section - Left Side on Desktop */}
           <div className="lg:col-span-1">
@@ -252,6 +279,7 @@ const Settings = () => {
             <p className="text-center lg:text-left text-xs text-muted-foreground pt-2">App Version 2.3</p>
           </div>
         </div>
+        )}
       </div>
 
       <BottomNav />

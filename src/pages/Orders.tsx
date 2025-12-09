@@ -86,7 +86,10 @@ const Orders = () => {
 
           {getFilteredOrders().length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No orders found</p>
+              <p className="text-muted-foreground mb-4">No orders found</p>
+              <Button onClick={() => navigate('/')} size="lg">
+                Shop Now
+              </Button>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -325,7 +325,7 @@ const ProductDetail = () => {
                   </div>
                   <span className="text-sm text-muted-foreground">({averageRating})</span>
                 </div>
-                <p className="text-3xl md:text-4xl font-bold text-foreground mt-3">${item.price.toFixed(2)}</p>
+                <p className="text-3xl md:text-4xl font-bold text-foreground mt-3">₹{item.price.toFixed(2)}</p>
               </div>
               <button className="p-2">
                 <MoreVertical className="w-5 h-5 text-muted-foreground" />

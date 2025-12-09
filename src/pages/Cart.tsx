@@ -140,9 +140,12 @@ const userId = localStorage.getItem('userId');
 
       <div className="px-4 py-6">
         <div className="max-w-7xl mx-auto">
-          {cart?.items?.length === 0 ? (
+          {!cart?.items || cart?.items?.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Your cart is empty</p>
+              <p className="text-muted-foreground mb-4">Your cart is empty</p>
+              <Button onClick={() => navigate('/')} size="lg">
+                Shop Now
+              </Button>
             </div>
           ) : (
             <div className="grid lg:grid-cols-3 gap-6">
@@ -178,10 +181,10 @@ const userId = localStorage.getItem('userId');
                           </div>
                           
                           <div className="flex items-center gap-2 mt-2">
-                            <p className="text-lg font-bold text-foreground">${item.inventoryId.price.toFixed(2)}</p>
+                            <p className="text-lg font-bold text-foreground">₹{item.inventoryId.price.toFixed(2)}</p>
                             {item.inventoryId.compareAtPrice > 0 && (
                               <>
-                                <p className="text-sm text-muted-foreground line-through">${item.inventoryId.compareAtPrice.toFixed(2)}</p>
+                                <p className="text-sm text-muted-foreground line-through">₹{item.inventoryId.compareAtPrice.toFixed(2)}</p>
                                 <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded">{offerPercentage}% OFF</span>
                               </>
                             )}
@@ -226,16 +229,16 @@ const userId = localStorage.getItem('userId');
                   <div className="space-y-3">
                     <div className="flex justify-between text-foreground">
                       <span>Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-foreground">
                       <span>Shipping</span>
-                      <span>${shipping.toFixed(2)}</span>
+                      <span>₹{shipping.toFixed(2)}</span>
                     </div>
                     <div className="border-t border-border pt-3 mt-3">
                       <div className="flex justify-between text-lg font-bold text-foreground">
                         <span>Total</span>
-                        <span>${total.toFixed(2)}</span>
+                        <span>₹{total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
