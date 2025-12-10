@@ -50,7 +50,7 @@ export const PromoModal = ({ delay = 2000 }: PromoModalProps) => {
                     onClick={handleClose}
                     className="absolute right-4 top-4 z-10 p-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                 >
-                    <X className="w-4 h-4 text-white" />
+               
                 </button>
 
                 {/* Decorative Elements */}

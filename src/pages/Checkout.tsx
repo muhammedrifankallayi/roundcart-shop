@@ -27,7 +27,7 @@ import AddAddressForm from "@/components/AddAddressForm";
 import { RESOURCE_URL } from "@/data/constants/constants";
 
 
-import {load} from '@cashfreepayments/cashfree-js';
+import { load } from '@cashfreepayments/cashfree-js';
 import { CreateOrder } from "@/data/models/order.model";
 import { OrderService } from "@/data/services/order.service";
 import { CashFreeOrderCreate } from "@/data/models/cashfree.model";
@@ -51,20 +51,20 @@ interface CartItem {
 
 const Checkout = () => {
 
-let cashfree;
-var initializeSDK = async function () {          
+  let cashfree;
+  var initializeSDK = async function () {
     cashfree = await load({
-        mode: "sandbox"
+      mode: "production"
     });
-};
-initializeSDK();
-  
+  };
+  initializeSDK();
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<string>("online");
-  
+
   // State for addresses and cart
   const [savedAddresses, setSavedAddresses] = useState<IAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
@@ -81,30 +81,6 @@ initializeSDK();
   const codCharge = paymentMethod === "cod" ? 25 : 0;
   const total = subtotal + shipping + tax + codCharge;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedAddressId) {
-      toast({
-        title: "Error",
-        description: "Please select a shipping address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      toast({
-        title: "Order placed successfully!",
-        description: "You will receive a confirmation email shortly.",
-      });
-      navigate("/orders");
-    }, 2000);
-  };
 
   const getAllAddresses = async () => {
     setIsLoadingAddresses(true);
@@ -165,42 +141,45 @@ initializeSDK();
   }, []);
 
 
-  const createCashFreeOrder = async (orderId:string,amount:number,mobile:string) => {
+  const createCashFreeOrder = async (orderId: string, amount: number, mobile: string) => {
 
-try {
-   const userId = localStorage.getItem('userId') || '';
-    const body:CashFreeOrderCreate = {
-      amount:amount,
-      customerId: userId,
-      customerPhone:mobile,
-      orderId:orderId,
-    }
+    try {
+      const userId = localStorage.getItem('userId') || '';
+      const body: CashFreeOrderCreate = {
+        amount: amount,
+        customerId: userId,
+        customerPhone: mobile,
+        orderId: orderId,
+      }
 
-    const response  =  await CashFreePaymentService.createOrder(body);
-    if(response.success){
-      if(response.data.payment_session_id)
-      doPayment(response.data.payment_session_id);
-    else
-      toast({
-        title: "Error",
-        description: "Failed to initiate payment session.",
-        variant: "destructive",
-      });
+      const response = await CashFreePaymentService.createOrder(body);
+      console.log(response);
+
+      if (response.success) {
+        if (response.data.payment_session_id)
+          doPayment(response.data.payment_session_id);
+        else
+          toast({
+            title: "Error",
+            description: "Failed to initiate payment session.",
+            variant: "destructive",
+          });
+      }
+
+    } catch (error) {
+      console.log(error);
+
     }
-  
-} catch (error) {
-  console.log(error);
-  
-}
 
   }
 
 
-  const submitOrder = async()=>{
+  const submitOrder = async (e) => {
+    e.preventDefault();
     try {
       const userId = localStorage.getItem('userId') || '';
 
-      if(!userId) {
+      if (!userId) {
         toast({
           title: "Error",
           description: "User not logged in.",
@@ -208,33 +187,33 @@ try {
         });
         return;
       }
-      const orderBody:CreateOrder = {
+      const orderBody: CreateOrder = {
         userId: userId,
-        items:cart.items.map((item)=>({inventoryId:item.inventoryId._id,qty:item.qty})),
-        deliveryType:'standard',
-        discount:0,
-        orderDate:new Date().toISOString(),
-        paymentDetails:{
+        items: cart.items.map((item) => ({ inventoryId: item.inventoryId._id, qty: item.qty })),
+        deliveryType: 'standard',
+        discount: 0,
+        orderDate: new Date().toISOString(),
+        paymentDetails: {
           method: paymentMethod === "cod" ? "cod" : "card"
         },
         paymentStatus: paymentMethod === "cod" ? "pending" : "pending",
-        shippingAddressId:selectedAddressId,
-        totalAmount:total,
+        shippingAddressId: selectedAddressId,
+        totalAmount: total,
         status: paymentMethod === "cod" ? "confirmed" : "processing",
       }
 
-      const response  = await OrderService.createOrder(orderBody);
-      if(response.success){
-        if(paymentMethod === "cod") {
+      const response = await OrderService.createOrder(orderBody);
+      if (response.success) {
+        if (paymentMethod === "cod") {
           // For COD, order is saved and confirmed
           setShowCongratsAnimation(true);
-         
+
           toast({
             title: "Order Confirmed",
             description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
             variant: "default",
           });
-          CartService.clearCartasync().then(()=>{});
+          CartService.clearCartasync().then(() => { });
           setTimeout(() => navigate("/orders"), 3000);
         } else {
           // For online payment, proceed to Cashfree
@@ -246,7 +225,7 @@ try {
           createCashFreeOrder(response.data._id, total, response.data.shippingAddressId.phone);
         }
       }
-      
+
     } catch (error) {
       console.log(error);
       toast({
@@ -258,40 +237,40 @@ try {
   }
 
 
-     const doPayment = async (sessionId:string) => {
-        let checkoutOptions = {
-            paymentSessionId: sessionId,
-            redirectTarget: "_modal",
-        };
-        cashfree.checkout(checkoutOptions).then((result) => {
-               console.log(result,"RESULT");
-            if(result.error){
-                // This will be true whenever user clicks on close icon inside the modal or any error happens during the payment
-                console.log("User has closed the popup or there is some payment error, Check for Payment Status");
-                console.log(result.error);
-            }
-            if(result.redirect){
-        
-             
-            }
-            if(result.paymentDetails){
-                // This will be called whenever the payment is completed irrespective of transaction status
-                console.log("Payment has been completed, Check for Payment Status");
-                console.log(result.paymentDetails.paymentMessage);
-                // Check if payment was successful
-                if(result.paymentDetails.paymentStatus === 'SUCCESS' || result.paymentDetails.paymentStatus === 'COMPLETED'){
-                  setShowCongratsAnimation(true);
-                  CartService.clearCartasync().then(()=>{});
-                  toast({
-                    title: "Order Confirmed",
-                    description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
-                    variant: "default",
-                  });
-                  setTimeout(() => navigate("/orders"), 3000);
-                }
-            }
-        });
+  const doPayment = async (sessionId: string) => {
+    let checkoutOptions = {
+      paymentSessionId: sessionId,
+      redirectTarget: "_modal",
     };
+    cashfree.checkout(checkoutOptions).then((result) => {
+      console.log(result, "RESULT");
+      if (result.error) {
+        // This will be true whenever user clicks on close icon inside the modal or any error happens during the payment
+        console.log("User has closed the popup or there is some payment error, Check for Payment Status");
+        console.log(result.error);
+      }
+      if (result.redirect) {
+
+
+      }
+      if (result.paymentDetails) {
+        // This will be called whenever the payment is completed irrespective of transaction status
+        console.log("Payment has been completed, Check for Payment Status");
+        console.log(result.paymentDetails.paymentMessage);
+        // Check if payment was successful
+        if (result.paymentDetails.paymentStatus === 'SUCCESS' || result.paymentDetails.paymentStatus === 'COMPLETED') {
+          setShowCongratsAnimation(true);
+          CartService.clearCartasync().then(() => { });
+          toast({
+            title: "Order Confirmed",
+            description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
+            variant: "default",
+          });
+          setTimeout(() => navigate("/orders"), 3000);
+        }
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -318,11 +297,11 @@ try {
       <div className="px-4 py-8">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-8">Checkout</h1>
-          
+
           <div className="grid lg:grid-cols-5 gap-8">
             {/* Checkout Form - Left Side */}
             <div className="lg:col-span-3">
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={submitOrder} className="space-y-8">
                 {/* Shipping Address Selection */}
                 <Card className="p-6 bg-card border-border">
                   <div className="flex items-center justify-between mb-6">
@@ -341,14 +320,14 @@ try {
                             Enter your shipping address details
                           </DialogDescription>
                         </DialogHeader>
-                        <AddAddressForm 
+                        <AddAddressForm
                           onSubmit={handleAddNewAddress}
                           onCancel={() => setIsDialogOpen(false)}
                         />
                       </DialogContent>
                     </Dialog>
                   </div>
-                  
+
                   {isLoadingAddresses ? (
                     <div className="text-center py-8 text-muted-foreground">
                       Loading addresses...
@@ -356,8 +335,8 @@ try {
                   ) : savedAddresses.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-muted-foreground mb-4">No addresses found</p>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="gap-2"
                         onClick={() => setIsDialogOpen(true)}
                       >
@@ -367,22 +346,20 @@ try {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {savedAddresses&&savedAddresses?.map((address) => (
+                      {savedAddresses && savedAddresses?.map((address) => (
                         <Card
                           key={address._id}
-                          className={`p-4 cursor-pointer transition-all border-2 ${
-                            selectedAddressId === address._id
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50"
-                          }`}
+                          className={`p-4 cursor-pointer transition-all border-2 ${selectedAddressId === address._id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                            }`}
                           onClick={() => setSelectedAddressId(address._id || "")}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                              selectedAddressId === address._id
-                                ? "border-primary bg-primary"
-                                : "border-muted-foreground"
-                            }`}>
+                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedAddressId === address._id
+                              ? "border-primary bg-primary"
+                              : "border-muted-foreground"
+                              }`}>
                               {selectedAddressId === address._id && (
                                 <Check className="w-3 h-3 text-primary-foreground" />
                               )}
@@ -443,12 +420,12 @@ try {
                   </div>
                 </Card>
 
-                <Button 
-                  type="submit" 
-                  size="lg" 
+                <Button
+                  type="submit"
+                  size="lg"
                   className="w-full"
                   disabled={isProcessing}
-                  onClick={()=>submitOrder()}
+                  onClick={(e) => submitOrder(e)}
                 >
                   {isProcessing ? "Processing..." : `CONFIRM ORDER - ₹${total.toFixed(2)}`}
                 </Button>
@@ -459,13 +436,13 @@ try {
             <div className="lg:col-span-2">
               <Card className="p-6 bg-card border-border sticky top-24">
                 <h2 className="text-xl font-semibold text-foreground mb-6">Order Summary</h2>
-                
+
                 <div className="space-y-4 mb-6">
                   {cart?.items?.map((item) => (
                     <div key={item.inventoryId._id} className="flex gap-4">
                       <div className="relative">
                         <img
-                          src={ RESOURCE_URL +''+ item.inventoryId.item.images[0]}
+                          src={RESOURCE_URL + '' + item.inventoryId.item.images[0]}
                           alt={item.inventoryId.item.name}
                           className="w-20 h-20 object-cover rounded-lg bg-secondary/50"
                         />
@@ -505,9 +482,9 @@ try {
                       <span className="text-green-600 font-medium">+ ₹{codCharge.toFixed(2)}</span>
                     </div>
                   )}
-                  
+
                   <Separator className="my-4" />
-                  
+
                   <div className="flex justify-between text-lg font-bold text-foreground">
                     <span>Total</span>
                     <span>₹{total.toFixed(2)}</span>

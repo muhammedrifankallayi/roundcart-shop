@@ -22,35 +22,52 @@ const Cart = () => {
   const updateQuantity = (id: string, delta: number) => {
     if (!cart?.items) return;
     const userId = localStorage.getItem('userId');
-    if(!userId){
-     cart.items.forEach(item => {
-      if(item.inventoryId._id === id){
+    if (!userId) {
+      cart.items.forEach(item => {
+        if (item.inventoryId._id === id) {
           const newQty = item.qty + delta;
-          if(newQty < 1) return;
+          if (newQty < 1) return;
           const newCart = { ...cart };
           newCart.items = newCart.items.map(ci => ci.inventoryId._id === id ? { ...ci, qty: newQty } : ci);
           setCart(newCart);
           localStorage.setItem('guestCart', JSON.stringify(newCart));
-      }
-    });
-    return;
+        }
+      });
+      return;
 
 
 
     }
     cart.items.forEach(item => {
-      if(item.inventoryId._id === id){
-          const newQty = item.qty + delta;
-          if(newQty < 1) return;
-          CartService.updateItemQuantityasync(id, newQty).then((response)=>{
-              setCart(response.data);
-          })
+      if (item.inventoryId._id === id) {
+        const newQty = item.qty + delta;
+        if (newQty < 1) return;
+        CartService.updateItemQuantityasync(id, newQty).then((response) => {
+          setCart(response.data);
+        })
       }
     });
   };
 
   const removeItem = (id: string) => {
-   
+    if (!cart?.items) return;
+    const userId = localStorage.getItem('userId');
+
+    if (!userId) {
+      // Guest user - remove from localStorage
+      const newCart = { ...cart };
+      newCart.items = newCart.items.filter(item => item.inventoryId._id !== id);
+      setCart(newCart);
+      localStorage.setItem('guestCart', JSON.stringify(newCart));
+      return;
+    }
+
+    // Logged-in user - call API
+    CartService.removeItemFromCartasync(id).then((response) => {
+      setCart(response.data);
+    }).catch((error) => {
+      console.error('Error removing item from cart:', error);
+    });
   };
 
   const subtotal = cart?.items?.reduce((sum, item) => sum + item.inventoryId.price * item.qty, 0) || 0;
@@ -59,34 +76,34 @@ const Cart = () => {
 
 
 
-  const getCartItems = ()=> {
+  const getCartItems = () => {
     try {
-       const guestCart = JSON.parse(localStorage.getItem('guestCart') || '{}') as ICart;
-const userId = localStorage.getItem('userId');
-    if(userId){
-     CartService.getCartasync().then((response)=>{
-      setCart(response.data || guestCart);
-     },err=>{
-      if(guestCart && guestCart.items){
-        setCart(guestCart);
-      }
-     }
-    )
-    }else{
       const guestCart = JSON.parse(localStorage.getItem('guestCart') || '{}') as ICart;
-    if(guestCart && guestCart.items){
-        setCart(guestCart);
-    }
-    }
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        CartService.getCartasync().then((response) => {
+          setCart(response.data || guestCart);
+        }, err => {
+          if (guestCart && guestCart.items) {
+            setCart(guestCart);
+          }
+        }
+        )
+      } else {
+        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '{}') as ICart;
+        if (guestCart && guestCart.items) {
+          setCart(guestCart);
+        }
+      }
 
     } catch (error) {
-      
+
     }
   }
 
   const onCheckout = () => {
     const userId = localStorage.getItem('userId');
-    if(!userId){
+    if (!userId) {
       setIsAuthModalOpen(true);
       return;
     }
@@ -94,25 +111,25 @@ const userId = localStorage.getItem('userId');
   };
 
   const handleAuthSuccess = (userData: UserData) => {
-   const cartData = localStorage.getItem('guestCart');
-   if(cartData){
-    const guestCart = JSON.parse(cartData) as ICart;
-   const items = guestCart.items.map(item => ({ inventoryId: item.inventoryId._id, qty: item.qty }));
-   if(items.length > 0){
-    CartService.addBulkToCartasync(items).then((response)=>{
-        setCart(response.data);
-        localStorage.removeItem('guestCart');
-        navigate('/checkout');
-    }
-    
-    );
-    return;
-   }
-    
-    navigate('/checkout');
-  };
+    const cartData = localStorage.getItem('guestCart');
+    if (cartData) {
+      const guestCart = JSON.parse(cartData) as ICart;
+      const items = guestCart.items.map(item => ({ inventoryId: item.inventoryId._id, qty: item.qty }));
+      if (items.length > 0) {
+        CartService.addBulkToCartasync(items).then((response) => {
+          setCart(response.data);
+          localStorage.removeItem('guestCart');
+          navigate('/checkout');
+        }
 
-}
+        );
+        return;
+      }
+
+      navigate('/checkout');
+    };
+
+  }
 
 
   useEffect(() => {
@@ -122,8 +139,8 @@ const userId = localStorage.getItem('userId');
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
+      <AuthModal
+        isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onAuthSuccess={handleAuthSuccess}
       />
@@ -151,15 +168,15 @@ const userId = localStorage.getItem('userId');
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
                 {cart?.items?.map((item) => {
-                  const offerPercentage = item.inventoryId.compareAtPrice > 0 
+                  const offerPercentage = item.inventoryId.compareAtPrice > 0
                     ? Math.round(((item.inventoryId.compareAtPrice - item.inventoryId.price) / item.inventoryId.compareAtPrice) * 100)
                     : 0;
-                  
+
                   return (
                     <Card key={item.inventoryId._id} className="p-4 bg-card border-border">
                       <div className="flex gap-4">
                         <img
-                          src={ RESOURCE_URL+''+item.inventoryId.item.images[0] || hoodieImg}
+                          src={RESOURCE_URL + '' + item.inventoryId.item.images[0] || hoodieImg}
                           alt={item.inventoryId.item.name}
                           className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg bg-secondary/50"
                         />
@@ -171,7 +188,7 @@ const userId = localStorage.getItem('userId');
                             <div className="flex items-center gap-1">
                               <span className="text-sm text-muted-foreground">Color: {item.inventoryId.color.name}</span>
                               {item.inventoryId.color.hex && (
-                                <div 
+                                <div
                                   className="w-4 h-4 rounded border border-border"
                                   style={{ backgroundColor: item.inventoryId.color.hex }}
                                   title={`${item.inventoryId.color.hex}${item.inventoryId.color.rgb ? ` / ${item.inventoryId.color.rgb}` : ''}`}
@@ -179,7 +196,7 @@ const userId = localStorage.getItem('userId');
                               )}
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2 mt-2">
                             <p className="text-lg font-bold text-foreground">₹{item.inventoryId.price.toFixed(2)}</p>
                             {item.inventoryId.compareAtPrice > 0 && (
