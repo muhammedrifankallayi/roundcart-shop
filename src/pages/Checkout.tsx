@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CreditCard, Lock, Plus, MapPin, Check, Truck } from "lucide-react";
+import { ArrowLeft, CreditCard, Lock, Plus, MapPin, Check, Truck, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -75,7 +75,39 @@ const Checkout = () => {
 
 
 
-  const subtotal = cart?.items?.reduce((sum, item) => sum + item.inventoryId.price * item.qty, 0);
+  const removeItem = (id: string) => {
+    if (!cart?.items) return;
+    const userId = localStorage.getItem('userId');
+
+    if (!userId) {
+      // Guest user - remove from localStorage
+      const newCart = { ...cart } as ICart;
+      if (newCart.items) {
+        newCart.items = newCart.items.filter(item => item.inventoryId._id !== id);
+        setCart(newCart);
+        localStorage.setItem('guestCart', JSON.stringify(newCart));
+      }
+      return;
+    }
+
+    // Logged-in user - call API
+    CartService.removeItemFromCartasync(id).then((response) => {
+      setCart(response.data);
+      toast({
+        title: "Item removed",
+        description: "Item has been removed from your cart.",
+      });
+    }).catch((error) => {
+      console.error('Error removing item from cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item from cart.",
+        variant: "destructive",
+      });
+    });
+  };
+
+  const subtotal = cart?.items?.reduce((sum, item) => sum + item.inventoryId.price * item.qty, 0) || 0;
   const shipping = 0.00;
   const tax = subtotal * 0.0;
   const codCharge = paymentMethod === "cod" ? 25 : 0;
@@ -396,9 +428,7 @@ const Checkout = () => {
                   <div className="space-y-4">
                     <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
                       {/* Online Payment Option */}
-                      <div className="flex items-center space-x-3 p-4 border-2 border-border rounded-lg cursor-pointer hover:border-primary/50 transition-all"
-                        onClick={() => setPaymentMethod("online")}
-                      >
+                      <div className="flex items-center space-x-3 p-4 border-2 border-border rounded-lg hover:border-primary/50 transition-all">
                         <RadioGroupItem value="online" id="online" />
                         <Label htmlFor="online" className="flex-1 cursor-pointer">
                           <div className="font-semibold text-foreground">Online Payment</div>
@@ -407,9 +437,7 @@ const Checkout = () => {
                       </div>
 
                       {/* Cash on Delivery Option */}
-                      <div className="flex items-center space-x-3 p-4 border-2 border-border rounded-lg cursor-pointer hover:border-primary/50 transition-all"
-                        onClick={() => setPaymentMethod("cod")}
-                      >
+                      <div className="flex items-center space-x-3 p-4 border-2 border-border rounded-lg hover:border-primary/50 transition-all">
                         <RadioGroupItem value="cod" id="cod" />
                         <Label htmlFor="cod" className="flex-1 cursor-pointer">
                           <div className="font-semibold text-foreground">Cash on Delivery</div>
@@ -458,6 +486,13 @@ const Checkout = () => {
                           ₹{(item.inventoryId.price * item.qty).toFixed(2)}
                         </p>
                       </div>
+                      <button
+                        onClick={() => removeItem(item.inventoryId._id)}
+                        className="text-muted-foreground hover:text-destructive self-start p-1"
+                        type="button"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
