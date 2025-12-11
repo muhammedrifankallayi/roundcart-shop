@@ -336,6 +336,7 @@ const Checkout = () => {
                     <div className="text-center py-8">
                       <p className="text-muted-foreground mb-4">No addresses found</p>
                       <Button
+                        type="button"
                         variant="outline"
                         className="gap-2"
                         onClick={() => setIsDialogOpen(true)}

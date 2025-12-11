@@ -51,8 +51,11 @@ axiosInstance.interceptors.response.use(
   (error: AxiosError) => {
     const originalRequest: any = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      // Token expired
+    // Skip token refresh for auth endpoints to prevent infinite loops
+    const isAuthEndpoint = originalRequest?.url?.includes('/auth/');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      // Token expired - try to refresh
       if (isRefreshing) {
         // Queue the request if refresh is already in progress
         return new Promise((resolve, reject) => {
@@ -74,18 +77,32 @@ axiosInstance.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (!refreshToken) {
-        // No refresh token available, clear storage and redirect to login
+        // No refresh token available, silently logout
+        console.log('No refresh token found - logging out silently');
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userData')
+        isRefreshing = false;
         return Promise.reject(error);
       }
 
       return axiosInstance
         .post('/auth/refresh', { refreshToken })
         .then((response: any) => {
-          const newToken = response.data?.token || response.token;
+          // The response here is already unwrapped (response.data from axios)
+          // So if API returns { success: true, data: { token: "..." } }, response = { success: true, data: { token: "..." } }
+          // If API returns { success: true, token: "..." }, response = { success: true, token: "..." }
+          const newToken = response?.data?.token || response?.token || response?.accessToken || response?.data?.accessToken;
+
+          console.log('Token refresh response:', response);
+          console.log('New token extracted:', newToken ? 'Token found' : 'No token found');
+
+          if (!newToken) {
+            console.error('Token refresh response structure:', JSON.stringify(response));
+            throw new Error('No token in refresh response');
+          }
 
           localStorage.setItem('token', newToken);
 
@@ -97,10 +114,16 @@ axiosInstance.interceptors.response.use(
           return axiosInstance(originalRequest);
         })
         .catch((err) => {
+          console.error('Token refresh failed - logging out silently:', err);
           processQueue(err, null);
+
+          // Silently logout - clear all auth data without redirecting
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
+          localStorage.removeItem('userId');
+          localStorage.removeItem('guestCart');
+
           return Promise.reject(err);
         })
         .finally(() => {
@@ -108,11 +131,14 @@ axiosInstance.interceptors.response.use(
         });
     }
 
-    if (error.response?.status === 401) {
-      // Clear auth data on other 401 errors
+    if (error.response?.status === 401 && !isAuthEndpoint) {
+      // Silently logout on 401 errors - clear auth data without redirecting
+      // Skip for auth endpoints (login/register failures should not clear existing data)
+      console.log('401 error - logging out silently');
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('userId');
     }
 
     return Promise.reject(error);

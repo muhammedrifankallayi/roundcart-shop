@@ -28,18 +28,18 @@ const AddAddressForm = ({ onSubmit, onCancel }: AddAddressFormProps) => {
 
   // Initialize fullName from localStorage
   useEffect(() => {
-   const userData:UserData = JSON.parse(localStorage.getItem("userData") || "{}");
+    const userData: UserData = JSON.parse(localStorage.getItem("userData") || "{}");
     const userId = localStorage.getItem("userId");
-    
+
     if (userData.name) {
       setFormData((prev) => ({
         ...prev,
         fullName: userData.name,
         email: userData.email || "",
-       
+
       }));
     }
-    
+
     if (userId) {
       setFormData((prev) => ({
         ...prev,
@@ -50,7 +50,7 @@ const AddAddressForm = ({ onSubmit, onCancel }: AddAddressFormProps) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    
+
     // Special handling for phone field - only allow digits and max 10
     if (id === "phone") {
       const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
@@ -65,7 +65,7 @@ const AddAddressForm = ({ onSubmit, onCancel }: AddAddressFormProps) => {
           phone: "",
         }));
       }
-    } 
+    }
     // Special handling for pinCode - only allow digits
     else if (id === "pinCode") {
       const digitsOnly = value.replace(/\D/g, "");
@@ -158,7 +158,7 @@ const AddAddressForm = ({ onSubmit, onCancel }: AddAddressFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-4">
+    <form className="space-y-4 py-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="fullName">Full Name *</Label>
@@ -264,7 +264,7 @@ const AddAddressForm = ({ onSubmit, onCancel }: AddAddressFormProps) => {
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="button" onClick={handleSubmit} disabled={isLoading}>
           {isLoading ? "Saving..." : "Save Address"}
         </Button>
       </div>
