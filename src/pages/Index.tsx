@@ -8,6 +8,7 @@ import { Loader, ProductCardSkeleton } from "@/components/ui/loader";
 import { ShoppingBag, Shirt, Footprints, Watch, Glasses, Crown } from "lucide-react";
 import { User, ShoppingCart, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
 
 import hoodieImg from "@/assets/hoodie.jpg";
 import tshirtImg from "@/assets/tshirt.jpg";
@@ -18,6 +19,10 @@ import pinkHoodieImg from "@/assets/pink-hoodie.jpg";
 import { ItemService } from "@/data/services/item.service";
 import { Item } from "@/data/models/item.model";
 import { UserData } from "@/data/models/user.model";
+import { SizeService } from "@/data/services/size.service";
+import { ColorService } from "@/data/services/color.service";
+import { Size } from "@/data/models/size.model";
+import { Color } from "@/data/models/color.model";
 
 const categories = [
   { icon: ShoppingBag, label: "All" },
@@ -39,6 +44,7 @@ const products = [
 
 const Index = () => {
   const navigate = useNavigate();
+  const { cartCount } = useCart();
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [itemList, setItemList] = useState<Item[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -59,8 +65,34 @@ const Index = () => {
     const fetchItems = async () => {
       setIsLoading(true);
       try {
-        const response = await itemService.getItemList();
-        setItemList(response.data);
+        const [itemsResponse, sizesResponse, colorsResponse] = await Promise.all([
+          itemService.getItemList(),
+          SizeService.getListasync(),
+          ColorService.getListasync()
+        ]);
+
+        const items = itemsResponse.data;
+        const allSizes = sizesResponse.data || [];
+        const allColors = colorsResponse.data || [];
+
+        // Map items to include full size/color objects if they are strings
+        const populatedItems = items.map(item => ({
+          ...item,
+          sizes: item.sizes?.map(s => {
+            if (typeof s === 'string') {
+              return allSizes.find(size => size._id === s) as unknown as Size;
+            }
+            return s;
+          }).filter(Boolean) as Size[],
+          colors: item.colors?.map(c => {
+            if (typeof c === 'string') {
+              return allColors.find(color => color._id === c) as unknown as Color;
+            }
+            return c;
+          }).filter(Boolean) as Color[]
+        }));
+
+        setItemList(populatedItems);
       } catch (error) {
         console.error('Error fetching items:', error);
       } finally {
@@ -105,8 +137,13 @@ const Index = () => {
           <h1 className="text-lg font-semibold text-foreground">The Five Five</h1>
           <div className="flex items-center gap-2">
             <MusicPlayer variant="compact" />
-            <button onClick={() => navigate('/cart')} className="p-1 hover:bg-secondary rounded-lg transition-colors">
+            <button onClick={() => navigate('/cart')} className="p-1 hover:bg-secondary rounded-lg transition-colors relative">
               <ShoppingCart className="w-6 h-6 text-foreground" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 border-2 border-background">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
             </button>
           </div>
         </div>

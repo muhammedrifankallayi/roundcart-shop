@@ -12,11 +12,11 @@ export const CartService = {
         return axiosInstance.get('/cart') as unknown as Promise<ApiResponse<ICart>>;
     },
 
-    addToCartasync: (inventoryId: string, qty: number): Promise<ApiResponse<ICart>> => {
-        return axiosInstance.post('/cart/add', { inventoryId, qty }) as unknown as Promise<ApiResponse<ICart>>;
+    addToCartasync: (itemId: string, qty: number, sizeId?: string, colorId?: string): Promise<ApiResponse<ICart>> => {
+        return axiosInstance.post('/cart/add', { itemId, qty, sizeId, colorId }) as unknown as Promise<ApiResponse<ICart>>;
     },
 
-    addBulkToCartasync: (items: { inventoryId: string; qty: number; }[]): Promise<ApiResponse<ICart>> => {
+    addBulkToCartasync: (items: { itemId: string; qty: number; sizeId?: string; colorId?: string; }[]): Promise<ApiResponse<ICart>> => {
         return axiosInstance.post('/cart/bulk-add', { items }) as unknown as Promise<ApiResponse<ICart>>;
     },
 
@@ -24,12 +24,12 @@ export const CartService = {
         return axiosInstance.get('/cart/count') as unknown as Promise<ApiResponse<{ count: number }>>;
     },
 
-    updateItemQuantityasync: (inventoryId: string, qty: number): Promise<ApiResponse<ICart>> => {
-        return axiosInstance.patch('/cart/items/' + inventoryId, { qty }) as unknown as Promise<ApiResponse<ICart>>;
+    updateItemQuantityasync: (cartItemId: string, qty: number): Promise<ApiResponse<ICart>> => {
+        return axiosInstance.patch('/cart/items/' + cartItemId, { qty }) as unknown as Promise<ApiResponse<ICart>>;
     },
 
-    removeItemFromCartasync: (inventoryId: string): Promise<ApiResponse<ICart>> => {
-        return axiosInstance.delete('/cart/items/' + inventoryId) as unknown as Promise<ApiResponse<ICart>>;
+    removeItemFromCartasync: (cartItemId: string): Promise<ApiResponse<ICart>> => {
+        return axiosInstance.delete('/cart/items/' + cartItemId) as unknown as Promise<ApiResponse<ICart>>;
     },
 
     clearCartasync: (): Promise<ApiResponse<ICart>> => {

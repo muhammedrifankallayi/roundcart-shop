@@ -1,9 +1,14 @@
 import { IAddress } from "./address.model";
 import { UserData } from "./user.model";
-import { Variant } from "./variants.model";
+import { Item } from "./item.model";
+
+import { Color } from "./color.model";
+import { Size } from "./size.model";
 
 export interface IOrderItem {
-  inventoryId: Variant;  // ObjectId as string
+  itemId: Item;  // ObjectId as string
+  sizeId?: Size;
+  colorId?: Color;
   qty: number;
 }
 
@@ -21,13 +26,13 @@ export interface IOrder {
   items: IOrderItem[];
   paymentDetails: IPaymentDetails;
   status:
-    | 'pending'
-    | 'confirmed'
-    | 'processing'
-    | 'shipped'
-    | 'delivered'
-    | 'cancelled'
-    | 'returned';
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'returned';
 
   totalAmount: number;
   discount: number;
@@ -35,11 +40,11 @@ export interface IOrder {
   deliveryType: 'standard' | 'express' | 'overnight' | 'pickup';
 
   paymentStatus:
-    | 'pending'
-    | 'paid'
-    | 'failed'
-    | 'refunded'
-    | 'partially_refunded';
+  | 'pending'
+  | 'paid'
+  | 'failed'
+  | 'refunded'
+  | 'partially_refunded';
 
   shippingAddressId: IAddress;
   billingAddressId?: IAddress;
@@ -57,25 +62,27 @@ export interface IOrder {
 }
 
 
-export interface OrderCreateItem{
-     inventoryId: string;  // ObjectId as string
+export interface OrderCreateItem {
+  itemId: string;  // ObjectId as string
+  sizeId?: string;
+  colorId?: string;
   qty: number;
 }
 
 
 
-export interface  CreateOrder{
+export interface CreateOrder {
   userId: string;
   items: OrderCreateItem[];
   paymentDetails: IPaymentDetails;
   status:
-    | 'pending'
-    | 'confirmed'
-    | 'processing'
-    | 'shipped'
-    | 'delivered'
-    | 'cancelled'
-    | 'returned';
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'returned';
 
   totalAmount: number;
   discount: number;
@@ -83,11 +90,11 @@ export interface  CreateOrder{
   deliveryType: 'standard' | 'express' | 'overnight' | 'pickup';
 
   paymentStatus:
-    | 'pending'
-    | 'paid'
-    | 'failed'
-    | 'refunded'
-    | 'partially_refunded';
+  | 'pending'
+  | 'paid'
+  | 'failed'
+  | 'refunded'
+  | 'partially_refunded';
 
   shippingAddressId: string;
   billingAddressId?: string;

@@ -17,8 +17,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import hoodieImg from "@/assets/hoodie.jpg";
-import sneakersImg from "@/assets/sneakers.jpg";
 import { IAddress } from "@/data/models/address.model";
 import { AddressService } from "@/data/services/address.service";
 import { ICart } from "@/data/models/cart.model";
@@ -34,7 +32,7 @@ import { CashFreeOrderCreate } from "@/data/models/cashfree.model";
 import { CashFreePaymentService } from "@/data/services/cashfree.service";
 import { LottieAnimation } from "@/components/LottieAnimation";
 import congratsAnimation from "@/assets/lotties/congrats.json";
-
+import { useCart } from "@/contexts/CartContext";
 
 
 
@@ -44,20 +42,27 @@ interface CartItem {
   price: number;
   image: string;
   quantity: number;
-  size: string;
   variantId?: string;
 }
 
 
 const Checkout = () => {
+  const { refreshCartCount, refreshOrderCount } = useCart();
+  const [cashfree, setCashfree] = useState<any>(null);
 
-  let cashfree;
-  var initializeSDK = async function () {
-    cashfree = await load({
-      mode: "production"
-    });
-  };
-  initializeSDK();
+  useEffect(() => {
+    const initializeSDK = async () => {
+      try {
+        const sdk = await load({
+          mode: "production"
+        });
+        setCashfree(sdk);
+      } catch (error) {
+        console.error("Failed to initialize Cashfree SDK:", error);
+      }
+    };
+    initializeSDK();
+  }, []);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -75,7 +80,7 @@ const Checkout = () => {
 
 
 
-  const removeItem = (id: string) => {
+  const removeItem = (item: any) => {
     if (!cart?.items) return;
     const userId = localStorage.getItem('userId');
 
@@ -83,7 +88,11 @@ const Checkout = () => {
       // Guest user - remove from localStorage
       const newCart = { ...cart } as ICart;
       if (newCart.items) {
-        newCart.items = newCart.items.filter(item => item.inventoryId._id !== id);
+        newCart.items = newCart.items.filter(i =>
+          !(i.itemId._id === item.itemId._id &&
+            i.sizeId?._id === item.sizeId?._id &&
+            i.colorId?._id === item.colorId?._id)
+        );
         setCart(newCart);
         localStorage.setItem('guestCart', JSON.stringify(newCart));
       }
@@ -91,8 +100,9 @@ const Checkout = () => {
     }
 
     // Logged-in user - call API
-    CartService.removeItemFromCartasync(id).then((response) => {
+    CartService.removeItemFromCartasync(item._id).then((response) => {
       setCart(response.data);
+      refreshCartCount();
       toast({
         title: "Item removed",
         description: "Item has been removed from your cart.",
@@ -107,7 +117,7 @@ const Checkout = () => {
     });
   };
 
-  const subtotal = cart?.items?.reduce((sum, item) => sum + item.inventoryId.price * item.qty, 0) || 0;
+  const subtotal = cart?.items?.filter(i => i.itemId).reduce((sum, item) => sum + item.itemId.price * item.qty, 0) || 0;
   const shipping = 0.00;
   const tax = subtotal * 0.0;
   const codCharge = paymentMethod === "cod" ? 25 : 0;
@@ -206,6 +216,34 @@ const Checkout = () => {
   }
 
 
+  const createActualOrder = async (transactionId?: string) => {
+    const userId = localStorage.getItem('userId') || '';
+    if (!cart?.items) return { success: false };
+
+    const orderBody: CreateOrder = {
+      userId: userId,
+      items: cart.items.map((item) => ({
+        itemId: item.itemId._id,
+        qty: item.qty,
+        sizeId: item.sizeId?._id,
+        colorId: item.colorId?._id
+      })),
+      deliveryType: 'standard',
+      discount: 0,
+      orderDate: new Date().toISOString(),
+      paymentDetails: {
+        method: paymentMethod === "cod" ? "cod" : "card",
+        transactionId: transactionId
+      },
+      paymentStatus: paymentMethod === "cod" ? "pending" : "paid",
+      shippingAddressId: selectedAddressId,
+      totalAmount: total,
+      status: paymentMethod === "cod" ? "confirmed" : "confirmed",
+    }
+
+    return await OrderService.createOrder(orderBody);
+  };
+
   const submitOrder = async (e) => {
     e.preventDefault();
     try {
@@ -219,50 +257,34 @@ const Checkout = () => {
         });
         return;
       }
-      const orderBody: CreateOrder = {
-        userId: userId,
-        items: cart.items.map((item) => ({ inventoryId: item.inventoryId._id, qty: item.qty })),
-        deliveryType: 'standard',
-        discount: 0,
-        orderDate: new Date().toISOString(),
-        paymentDetails: {
-          method: paymentMethod === "cod" ? "cod" : "card"
-        },
-        paymentStatus: paymentMethod === "cod" ? "pending" : "pending",
-        shippingAddressId: selectedAddressId,
-        totalAmount: total,
-        status: paymentMethod === "cod" ? "confirmed" : "processing",
-      }
 
-      const response = await OrderService.createOrder(orderBody);
-      if (response.success) {
-        if (paymentMethod === "cod") {
-          // For COD, order is saved and confirmed
+      if (paymentMethod === "cod") {
+        const response = await createActualOrder();
+        if (response.success) {
           setShowCongratsAnimation(true);
-
           toast({
             title: "Order Confirmed",
             description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
             variant: "default",
           });
-          CartService.clearCartasync().then(() => { });
-          setTimeout(() => navigate("/orders"), 3000);
-        } else {
-          // For online payment, proceed to Cashfree
-          toast({
-            title: "Order Created",
-            description: "Your order has been created successfully. Please complete the payment.",
-            variant: "default",
+          CartService.clearCartasync().then(() => {
+            refreshCartCount();
+            refreshOrderCount();
           });
-          createCashFreeOrder(response.data._id, total, response.data.shippingAddressId.phone);
+          setTimeout(() => navigate("/orders"), 3000);
         }
+      } else {
+        // For online payment - use a dummy order ID
+        const selectedAddress = savedAddresses.find(a => a._id === selectedAddressId);
+        const tempOrderId = "ORD_TEMP_" + Date.now();
+        createCashFreeOrder(tempOrderId, total, selectedAddress?.phone || "");
       }
 
     } catch (error) {
       console.log(error);
       toast({
         title: "Error",
-        description: "Failed to create order.",
+        description: "Failed to process order.",
         variant: "destructive",
       });
     }
@@ -270,35 +292,53 @@ const Checkout = () => {
 
 
   const doPayment = async (sessionId: string) => {
+    if (!cashfree) {
+      toast({
+        title: "Error",
+        description: "Payment gateway not initialized. Please refresh.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     let checkoutOptions = {
       paymentSessionId: sessionId,
       redirectTarget: "_modal",
     };
-    cashfree.checkout(checkoutOptions).then((result) => {
+    cashfree.checkout(checkoutOptions).then(async (result) => {
       console.log(result, "RESULT");
       if (result.error) {
-        // This will be true whenever user clicks on close icon inside the modal or any error happens during the payment
         console.log("User has closed the popup or there is some payment error, Check for Payment Status");
         console.log(result.error);
       }
-      if (result.redirect) {
 
-
-      }
       if (result.paymentDetails) {
-        // This will be called whenever the payment is completed irrespective of transaction status
         console.log("Payment has been completed, Check for Payment Status");
-        console.log(result.paymentDetails.paymentMessage);
-        // Check if payment was successful
         if (result.paymentDetails.paymentStatus === 'SUCCESS' || result.paymentDetails.paymentStatus === 'COMPLETED') {
-          setShowCongratsAnimation(true);
-          CartService.clearCartasync().then(() => { });
-          toast({
-            title: "Order Confirmed",
-            description: "Your order has been placed successfully. Please pay ₹" + total + " on delivery.",
-            variant: "default",
-          });
-          setTimeout(() => navigate("/orders"), 3000);
+          try {
+            // Create the actual order in database after successful payment
+            const response = await createActualOrder(result.paymentDetails.cf_payment_id || "");
+            if (response.success) {
+              setShowCongratsAnimation(true);
+              CartService.clearCartasync().then(() => {
+                refreshCartCount();
+                refreshOrderCount();
+              });
+              toast({
+                title: "Order Confirmed",
+                description: "Your payment was successful and your order has been placed.",
+                variant: "default",
+              });
+              setTimeout(() => navigate("/orders"), 3000);
+            }
+          } catch (err) {
+            console.error("Order creation failed after payment:", err);
+            toast({
+              title: "Order Sync Issue",
+              description: "Payment successful but failed to update order. Please capture your payment ID: " + result.paymentDetails.cf_payment_id,
+              variant: "destructive",
+            });
+          }
         }
       }
     });
@@ -385,14 +425,14 @@ const Checkout = () => {
                           className={`p-4 cursor-pointer transition-all border-2 ${selectedAddressId === address._id
                             ? "border-primary bg-primary/5"
                             : "border-border hover:border-primary/50"
-                            }`}
+                            } `}
                           onClick={() => setSelectedAddressId(address._id || "")}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedAddressId === address._id
                               ? "border-primary bg-primary"
                               : "border-muted-foreground"
-                              }`}>
+                              } `}>
                               {selectedAddressId === address._id && (
                                 <Check className="w-3 h-3 text-primary-foreground" />
                               )}
@@ -467,12 +507,12 @@ const Checkout = () => {
                 <h2 className="text-xl font-semibold text-foreground mb-6">Order Summary</h2>
 
                 <div className="space-y-4 mb-6">
-                  {cart?.items?.map((item) => (
-                    <div key={item.inventoryId._id} className="flex gap-4">
+                  {cart?.items?.filter(i => i.itemId).map((item) => (
+                    <div key={item.itemId._id} className="flex gap-4">
                       <div className="relative">
                         <img
-                          src={RESOURCE_URL + '' + item.inventoryId.item.images[0]}
-                          alt={item.inventoryId.item.name}
+                          src={RESOURCE_URL + '' + item.itemId.images[0]}
+                          alt={item.itemId.name}
                           className="w-20 h-20 object-cover rounded-lg bg-secondary/50"
                         />
                         <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
@@ -480,14 +520,33 @@ const Checkout = () => {
                         </div>
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-foreground">{item.inventoryId.item.name}</h3>
-                        <p className="text-sm text-muted-foreground">Size: {item.inventoryId.size.code}</p>
+                        <h3 className="font-medium text-foreground">{item.itemId.name}</h3>
+
+                        {(item.sizeId || item.colorId) && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {item.sizeId && (
+                              <span className="text-[10px] bg-secondary/80 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                {item.sizeId.code || item.sizeId.name}
+                              </span>
+                            )}
+                            {item.colorId && (
+                              <div className="flex items-center gap-1.5 bg-secondary/80 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                <span
+                                  className="w-2 h-2 rounded-full border border-black/10"
+                                  style={{ backgroundColor: item.colorId.hex }}
+                                />
+                                <span className="text-[10px]">{item.colorId.name}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <p className="text-sm font-bold text-foreground mt-1">
-                          ₹{(item.inventoryId.price * item.qty).toFixed(2)}
+                          ₹{(item.itemId.price * item.qty).toFixed(2)}
                         </p>
                       </div>
                       <button
-                        onClick={() => removeItem(item.inventoryId._id)}
+                        onClick={() => removeItem(item)}
                         className="text-muted-foreground hover:text-destructive self-start p-1"
                         type="button"
                       >

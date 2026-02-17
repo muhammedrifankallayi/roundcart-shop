@@ -5,76 +5,82 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthModal } from "@/components/AuthModal";
+import { useCart } from "@/contexts/CartContext";
 
 import hoodieImg from "@/assets/hoodie.jpg";
-import sneakersImg from "@/assets/sneakers.jpg";
 import { ICart } from "@/data/models/cart.model";
 import { CartService } from "@/data/services/cart.service";
 import { RESOURCE_URL } from "@/data/constants/constants";
 import { UserData } from "@/data/models/user.model";
 
-
 const Cart = () => {
   const navigate = useNavigate();
+  const { refreshCartCount } = useCart();
   const [cart, setCart] = useState<ICart>();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const updateQuantity = (id: string, delta: number) => {
+  const updateQuantity = (cartItem: any, delta: number) => {
     if (!cart?.items) return;
     const userId = localStorage.getItem('userId');
+    const itemId = cartItem.itemId._id;
+    const sizeId = cartItem.sizeId?._id;
+    const colorId = cartItem.colorId?._id;
+
     if (!userId) {
-      cart.items.forEach(item => {
-        if (item.inventoryId._id === id) {
-          const newQty = item.qty + delta;
-          if (newQty < 1) return;
-          const newCart = { ...cart };
-          newCart.items = newCart.items.map(ci => ci.inventoryId._id === id ? { ...ci, qty: newQty } : ci);
-          setCart(newCart);
-          localStorage.setItem('guestCart', JSON.stringify(newCart));
-        }
-      });
-      return;
+      const newCart = { ...cart };
+      const itemIndex = newCart.items.findIndex(i =>
+        i.itemId._id === itemId &&
+        i.sizeId?._id === sizeId &&
+        i.colorId?._id === colorId
+      );
 
-
-
-    }
-    cart.items.forEach(item => {
-      if (item.inventoryId._id === id) {
-        const newQty = item.qty + delta;
+      if (itemIndex > -1) {
+        const newQty = newCart.items[itemIndex].qty + delta;
         if (newQty < 1) return;
-        CartService.updateItemQuantityasync(id, newQty).then((response) => {
-          setCart(response.data);
-        })
+        newCart.items[itemIndex] = { ...newCart.items[itemIndex], qty: newQty };
+        setCart(newCart);
+        localStorage.setItem('guestCart', JSON.stringify(newCart));
+        refreshCartCount();
       }
+      return;
+    }
+
+    const newQty = cartItem.qty + delta;
+    if (newQty < 1) return;
+    CartService.updateItemQuantityasync(cartItem._id, newQty).then((response) => {
+      setCart(response.data);
+      refreshCartCount();
     });
   };
 
-  const removeItem = (id: string) => {
+  const removeItem = (cartItem: any) => {
     if (!cart?.items) return;
     const userId = localStorage.getItem('userId');
 
     if (!userId) {
-      // Guest user - remove from localStorage
       const newCart = { ...cart };
-      newCart.items = newCart.items.filter(item => item.inventoryId._id !== id);
+      newCart.items = newCart.items.filter(i =>
+        !(i.itemId._id === cartItem.itemId._id &&
+          i.sizeId?._id === cartItem.sizeId?._id &&
+          i.colorId?._id === cartItem.colorId?._id)
+      );
       setCart(newCart);
       localStorage.setItem('guestCart', JSON.stringify(newCart));
+      refreshCartCount();
       return;
     }
 
-    // Logged-in user - call API
-    CartService.removeItemFromCartasync(id).then((response) => {
+    CartService.removeItemFromCartasync(cartItem._id).then((response) => {
       setCart(response.data);
+      refreshCartCount();
     }).catch((error) => {
       console.error('Error removing item from cart:', error);
     });
   };
 
-  const subtotal = cart?.items?.reduce((sum, item) => sum + item.inventoryId.price * item.qty, 0) || 0;
+  const subtotal = cart?.items?.filter(i => i.itemId).reduce((sum, item) => sum + item.itemId.price * item.qty, 0) || 0;
   const shipping = 0.00;
   const total = subtotal + shipping;
-
-
 
   const getCartItems = () => {
     try {
@@ -87,8 +93,7 @@ const Cart = () => {
           if (guestCart && guestCart.items) {
             setCart(guestCart);
           }
-        }
-        )
+        })
       } else {
         const guestCart = JSON.parse(localStorage.getItem('guestCart') || '{}') as ICart;
         if (guestCart && guestCart.items) {
@@ -114,23 +119,24 @@ const Cart = () => {
     const cartData = localStorage.getItem('guestCart');
     if (cartData) {
       const guestCart = JSON.parse(cartData) as ICart;
-      const items = guestCart.items.map(item => ({ inventoryId: item.inventoryId._id, qty: item.qty }));
+      const items = guestCart.items.map(item => ({
+        itemId: typeof item.itemId === 'string' ? item.itemId : item.itemId?._id,
+        qty: item.qty,
+        sizeId: typeof item.sizeId === 'string' ? item.sizeId : item.sizeId?._id,
+        colorId: typeof item.colorId === 'string' ? item.colorId : item.colorId?._id
+      })).filter(item => item.itemId); // Ensure we only send valid items
       if (items.length > 0) {
         CartService.addBulkToCartasync(items).then((response) => {
           setCart(response.data);
           localStorage.removeItem('guestCart');
+          refreshCartCount();
           navigate('/checkout');
-        }
-
-        );
+        });
         return;
       }
-
       navigate('/checkout');
     };
-
   }
-
 
   useEffect(() => {
     getCartItems();
@@ -167,48 +173,53 @@ const Cart = () => {
           ) : (
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
-                {cart?.items?.map((item) => {
-                  const offerPercentage = item.inventoryId.compareAtPrice > 0
-                    ? Math.round(((item.inventoryId.compareAtPrice - item.inventoryId.price) / item.inventoryId.compareAtPrice) * 100)
+                {cart?.items?.filter(i => i.itemId).map((item) => {
+                  const offerPercentage = (item.itemId.compareAtPrice || 0) > 0
+                    ? Math.round(((((item.itemId.compareAtPrice || 0) - item.itemId.price) / (item.itemId.compareAtPrice || 1)) * 100))
                     : 0;
 
                   return (
-                    <Card key={item.inventoryId._id} className="p-4 bg-card border-border">
+                    <Card key={item.itemId._id} className="p-4 bg-card border-border">
                       <div className="flex gap-4">
                         <img
-                          src={RESOURCE_URL + '' + item.inventoryId.item.images[0] || hoodieImg}
-                          alt={item.inventoryId.item.name}
+                          src={RESOURCE_URL + '' + item.itemId.images[0] || hoodieImg}
+                          alt={item.itemId.name}
                           className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg bg-secondary/50"
                         />
                         <div className="flex-1">
-                          <h3 className="font-medium text-foreground">{item.inventoryId.item.name}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-sm text-muted-foreground">Size: {item.inventoryId.size.code}</p>
-                            <span className="text-xs">•</span>
-                            <div className="flex items-center gap-1">
-                              <span className="text-sm text-muted-foreground">Color: {item.inventoryId.color.name}</span>
-                              {item.inventoryId.color.hex && (
-                                <div
-                                  className="w-4 h-4 rounded border border-border"
-                                  style={{ backgroundColor: item.inventoryId.color.hex }}
-                                  title={`${item.inventoryId.color.hex}${item.inventoryId.color.rgb ? ` / ${item.inventoryId.color.rgb}` : ''}`}
-                                />
+                          <h3 className="font-medium text-foreground">{item.itemId.name}</h3>
+
+                          {(item.sizeId || item.colorId) && (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {item.sizeId && (
+                                <span className="text-[10px] bg-secondary/80 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                  Size: {item.sizeId.code || item.sizeId.name}
+                                </span>
+                              )}
+                              {item.colorId && (
+                                <div className="flex items-center gap-1.5 bg-secondary/80 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                  <span className="text-[10px]">Color: {item.colorId.name}</span>
+                                  <span
+                                    className="w-2 h-2 rounded-full border border-black/10"
+                                    style={{ backgroundColor: item.colorId.hex }}
+                                  />
+                                </div>
                               )}
                             </div>
-                          </div>
+                          )}
 
                           <div className="flex items-center gap-2 mt-2">
-                            <p className="text-lg font-bold text-foreground">₹{item.inventoryId.price.toFixed(2)}</p>
-                            {item.inventoryId.compareAtPrice > 0 && (
+                            <p className="text-lg font-bold text-foreground">₹{item.itemId.price.toFixed(2)}</p>
+                            {(item.itemId.compareAtPrice || 0) > 0 && (
                               <>
-                                <p className="text-sm text-muted-foreground line-through">₹{item.inventoryId.compareAtPrice.toFixed(2)}</p>
+                                <p className="text-sm text-muted-foreground line-through">₹{(item.itemId.compareAtPrice || 0).toFixed(2)}</p>
                                 <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded">{offerPercentage}% OFF</span>
                               </>
                             )}
                           </div>
                         </div>
                         <button
-                          onClick={() => removeItem(item.inventoryId._id)}
+                          onClick={() => removeItem(item)}
                           className="text-muted-foreground hover:text-destructive"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -218,7 +229,7 @@ const Cart = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updateQuantity(item.inventoryId._id, -1)}
+                          onClick={() => updateQuantity(item, -1)}
                           className="h-8 w-8"
                         >
                           <Minus className="w-4 h-4" />
@@ -229,7 +240,7 @@ const Cart = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updateQuantity(item.inventoryId._id, 1)}
+                          onClick={() => updateQuantity(item, 1)}
                           className="h-8 w-8"
                         >
                           <Plus className="w-4 h-4" />

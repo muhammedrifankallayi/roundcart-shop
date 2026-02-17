@@ -1,4 +1,5 @@
-
+import { Color } from "./color.model";
+import { Size } from "./size.model";
 
 export interface Item {
   _id: string;
@@ -12,6 +13,8 @@ export interface Item {
   costPrice?: number | null;
   tags: string[];
   attributes: Record<string, any>;
+  sizes: Size[];
+  colors: Color[];
   isActive: boolean;
   isFeatured: boolean;
   createdAt: Date;

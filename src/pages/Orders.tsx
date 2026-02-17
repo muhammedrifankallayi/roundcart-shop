@@ -5,10 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BottomNav } from "@/components/BottomNav";
+import { useCart } from "@/contexts/CartContext";
 
-import hoodieImg from "@/assets/hoodie.jpg";
-import tshirtImg from "@/assets/tshirt.jpg";
-import sneakersImg from "@/assets/sneakers.jpg";
 import { OrderService } from "@/data/services/order.service";
 import { IOrder } from "@/data/models/order.model";
 import { useEffect, useState } from "react";
@@ -24,6 +22,7 @@ const statusColors = {
 
 const Orders = () => {
   const navigate = useNavigate();
+  const { refreshOrderCount } = useCart();
 
   const [orderList, setOrderList] = useState<IOrder[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -47,6 +46,7 @@ const Orders = () => {
 
   useEffect(() => {
     getAllOrders();
+    refreshOrderCount();
   }, [])
 
   const getFilteredOrders = () => {
@@ -113,18 +113,18 @@ const Orders = () => {
                   </div>
 
                   <div className="space-y-3 flex-1">
-                    {order?.items?.map((item) => (
-                      <div key={item.inventoryId._id} className="flex gap-3">
+                    {order?.items?.filter(i => i.itemId).map((item) => (
+                      <div key={item.itemId._id} className="flex gap-3">
                         <img
-                          src={RESOURCE_URL + '' + item.inventoryId.item.images[0]}
-                          alt={item.inventoryId.item.name}
+                          src={RESOURCE_URL + '' + item.itemId.images[0]}
+                          alt={item.itemId.name}
                           className="w-16 h-16 object-cover rounded-lg bg-secondary/50"
                         />
                         <div className="flex-1">
-                          <h4 className="text-sm font-medium text-foreground">{item.inventoryId.item.name}</h4>
+                          <h4 className="text-sm font-medium text-foreground">{item.itemId.name}</h4>
                           <p className="text-xs text-muted-foreground mt-1">Qty: {item.qty}</p>
                           <p className="text-sm font-semibold text-foreground mt-1">
-                            ${item.inventoryId.price.toFixed(2)}
+                            ₹{item.itemId.price.toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -134,7 +134,7 @@ const Orders = () => {
                   <div className="border-t border-border mt-4 pt-4 space-y-3">
                     <div className="flex justify-between text-foreground">
                       <span className="font-semibold">Total</span>
-                      <span className="font-bold">${order.totalAmount.toFixed(2)}</span>
+                      <span className="font-bold">₹{order.totalAmount.toFixed(2)}</span>
                     </div>
                     {(order.status === "shipped" || order.status === "delivered") && (
                       <Button
