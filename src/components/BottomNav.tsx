@@ -10,9 +10,9 @@ export const BottomNav = () => {
   const { cartCount, orderCount } = useCart();
 
   const navItems = [
-    { icon: Home, label: "Shopping", path: "/home" },
+    { icon: Home, label: "Shopping", path: "/" },
     { icon: ShoppingCart, label: "Cart", path: "/cart" },
-    { label: "Add", path: "/add", isSpecial: true },
+    { label: "Logo", path: "/landing", isSpecial: true },
     { icon: Package, label: "My Orders", path: "/orders" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];

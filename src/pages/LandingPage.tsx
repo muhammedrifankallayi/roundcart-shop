@@ -46,15 +46,27 @@ export default function LandingPage() {
     }
     window.addEventListener('mousemove', onMouseMove);
 
-    // Preloader timeline
+    // Preloader timeline — skip if global splash already ran this session
+    const splashAlreadyRan = !!sessionStorage.getItem('fitfive_splash_shown');
     const tlLoader = gsap.timeline();
-    tlLoader
-      .to('.pre-char', { y: 0, stagger: 0.05, duration: 0.8, ease: 'power4.out' })
-      .to('.pre-char', { y: '-100%', stagger: 0.05, duration: 0.6, ease: 'power4.in', delay: 0.2 })
-      .to(preloader.current, { y: '-100%', duration: 1, ease: 'expo.inOut' }, '-=0.2')
-      .to('.hero-text', { y: 0, stagger: 0.1, duration: 1.2, ease: 'power4.out' }, '-=0.5')
-      .to('.hero-sub', { opacity: 1, duration: 1, ease: 'power2.out' }, '-=0.8')
-      .to('.hero-scroll', { opacity: 1, y: 0, duration: 1, ease: 'power2.out' }, '-=0.8');
+
+    if (splashAlreadyRan) {
+      // Splash already played globally — skip preloader, animate hero directly
+      if (preloader.current) {
+        preloader.current.style.display = 'none';
+      }
+      gsap.to('.hero-text', { y: 0, stagger: 0.1, duration: 1.2, ease: 'power4.out', delay: 0.1 });
+      gsap.to('.hero-sub', { opacity: 1, duration: 1, ease: 'power2.out', delay: 0.3 });
+      gsap.to('.hero-scroll', { opacity: 1, y: 0, duration: 1, ease: 'power2.out', delay: 0.5 });
+    } else {
+      tlLoader
+        .to('.pre-char', { y: 0, stagger: 0.05, duration: 0.8, ease: 'power4.out' })
+        .to('.pre-char', { y: '-100%', stagger: 0.05, duration: 0.6, ease: 'power4.in', delay: 0.2 })
+        .to(preloader.current, { y: '-100%', duration: 1, ease: 'expo.inOut' }, '-=0.2')
+        .to('.hero-text', { y: 0, stagger: 0.1, duration: 1.2, ease: 'power4.out' }, '-=0.5')
+        .to('.hero-sub', { opacity: 1, duration: 1, ease: 'power2.out' }, '-=0.8')
+        .to('.hero-scroll', { opacity: 1, y: 0, duration: 1, ease: 'power2.out' }, '-=0.8');
+    }
 
     // Fade up
     gsap.utils.toArray('.fade-up').forEach((el) => {
@@ -200,7 +212,7 @@ export default function LandingPage() {
           <div className="mt-10 flex flex-col items-center gap-6 overflow-hidden">
             <div className="flex flex-row items-center gap-4 opacity-0 hero-sub">
               <Link
-                to="/home"
+                to="/"
                 className="bg-white text-black px-8 py-3 rounded-full text-sm uppercase tracking-widest hover:bg-gray-200 transition-all duration-300 hover-trigger font-semibold"
                 data-cursor="hover"
               >
@@ -264,7 +276,7 @@ export default function LandingPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a
-                href="https://wa.me/8138957263?text=Hi%2C%20I%20need%20help%20tracking%20my%20order"
+                href="https://wa.me/918138957263?text=Hi%2C%20I%20need%20help%20tracking%20my%20order"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold rounded-lg transition-colors"
@@ -295,7 +307,7 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div
-            onClick={() => navigate('/home')}
+            onClick={() => navigate('/')}
             className="group relative h-[500px] border-r border-white/10 service-card overflow-hidden hover-trigger cursor-pointer"
             data-cursor="hover"
           >
@@ -462,7 +474,7 @@ export default function LandingPage() {
             </div>
 
             <a
-              href="https://wa.me/8138957263"
+              href="https://wa.me/918138957263"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-3 w-full py-4 px-6 bg-[#25D366] hover:bg-[#20BD5A] text-white font-semibold rounded-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-green-500/25"

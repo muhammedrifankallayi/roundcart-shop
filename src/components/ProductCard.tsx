@@ -1,16 +1,44 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { RESOURCE_URL } from "@/data/constants/constants";
 import { Item } from "@/data/models/item.model";
 import { useNavigate } from "react-router-dom";
+import { Heart } from "lucide-react";
 
+const WL_KEY = "fitfive_wishlist";
 
+function isWishlisted(id: string): boolean {
+  try {
+    const list = JSON.parse(localStorage.getItem(WL_KEY) || "[]");
+    return list.some((i: { _id: string }) => i._id === id);
+  } catch { return false; }
+}
+
+function toggleWishlist(item: { _id: string; name: string; price: number; images: string[] }) {
+  try {
+    const list = JSON.parse(localStorage.getItem(WL_KEY) || "[]");
+    const exists = list.some((i: { _id: string }) => i._id === item._id);
+    const updated = exists
+      ? list.filter((i: { _id: string }) => i._id !== item._id)
+      : [...list, item];
+    localStorage.setItem(WL_KEY, JSON.stringify(updated));
+    return !exists;
+  } catch { return false; }
+}
 
 export const ProductCard = ({ _id, name, price, compareAtPrice, images, sizes, colors }: Item) => {
   const navigate = useNavigate();
+  const [wishlisted, setWishlisted] = useState(() => isWishlisted(_id));
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const added = toggleWishlist({ _id, name, price, images });
+    setWishlisted(added);
+  };
 
   return (
     <div className="cursor-pointer group" onClick={() => navigate(`/product/${_id}`)}>
-      <Card className="bg-card border-border overflow-hidden hover:bg-accent transition-colors mb-3">
+      <Card className="bg-card border-border overflow-hidden hover:bg-accent transition-colors mb-3 relative">
         <div className="aspect-square bg-secondary/50 overflow-hidden">
           <img
             src={`${RESOURCE_URL}${images[0]}`}
@@ -18,6 +46,17 @@ export const ProductCard = ({ _id, name, price, compareAtPrice, images, sizes, c
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>
+        {/* Wishlist heart button */}
+        <button
+          onClick={handleWishlist}
+          className={`absolute top-2 right-2 p-1.5 rounded-full backdrop-blur-sm transition-all duration-200
+            ${wishlisted
+              ? "bg-red-500 text-white shadow-md"
+              : "bg-black/30 text-white/80 hover:bg-black/50"
+            }`}
+        >
+          <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-white" : ""}`} />
+        </button>
       </Card>
       <div>
         <h3 className="text-sm font-medium text-foreground mb-1">{name}</h3>
