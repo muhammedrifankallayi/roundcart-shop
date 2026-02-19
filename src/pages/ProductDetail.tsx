@@ -353,14 +353,14 @@ const ProductDetail = () => {
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`aspect - square bg - secondary / 50 rounded - lg overflow - hidden border - 2 transition - all hover: scale - 105 ${selectedImageIndex === index
+                    className={`aspect-square bg-secondary/50 rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${selectedImageIndex === index
                       ? 'border-primary shadow-lg'
                       : 'border-transparent'
-                      } `}
+                      }`}
                   >
                     <img
                       src={RESOURCE_URL + '' + img}
-                      alt={`${item.name} view ${index + 1} `}
+                      alt={`${item.name} view ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -379,7 +379,7 @@ const ProductDetail = () => {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`w - 4 h - 4 ${i < Math.floor(Number(averageRating)) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'} `}
+                        className={`w-4 h-4 ${i < Math.floor(Number(averageRating)) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
                       />
                     ))}
                   </div>
@@ -449,10 +449,10 @@ const ProductDetail = () => {
                       <button
                         key={size._id || index}
                         onClick={() => setSelectedSize(size._id)}
-                        className={`min - w - [3rem] h - 11 px - 4 rounded - xl border - 2 flex items - center justify - center transition - all duration - 300 font - bold active: scale - 95 ${isSelected
+                        className={`min-w-[3rem] h-11 px-4 rounded-xl border-2 flex items-center justify-center transition-all duration-300 font-bold active:scale-95 ${isSelected
                           ? 'border-primary bg-primary/10 text-primary shadow-sm'
                           : 'border-secondary bg-secondary/30 text-muted-foreground hover:border-primary/30 hover:bg-secondary/50'
-                          } `}
+                          }`}
                       >
                         {size.code || size.name}
                       </button>
@@ -493,18 +493,17 @@ const ProductDetail = () => {
                         className="flex flex-col items-center gap-2 group outline-none"
                       >
                         <div
-                          className={`w - 12 h - 12 rounded - full border - 2 transition - all duration - 300 p - 0.5 flex items - center justify - center active: scale - 90 ${isSelected
+                          className={`w-12 h-12 rounded-full border-2 transition-all duration-300 p-0.5 flex items-center justify-center active:scale-90 ${isSelected
                             ? 'border-primary ring-4 ring-primary/10 shadow-lg'
                             : 'border-secondary group-hover:border-primary/40'
-                            } `}
+                            }`}
                         >
                           <div
                             className="w-full h-full rounded-full border border-black/10 shadow-inner"
                             style={{ backgroundColor: color.hex || '#ccc' }}
                           />
                         </div>
-                        <span className={`text - [11px] transition - colors duration - 300 ${isSelected ? 'text-primary font-bold' : 'text-muted-foreground font-medium'
-                          } `}>
+                        <span className={`text-[11px] transition-colors duration-300 ${isSelected ? 'text-primary font-bold' : 'text-muted-foreground font-medium'}`}>
                           {color.name}
                         </span>
                       </button>
@@ -553,10 +552,10 @@ const ProductDetail = () => {
                                   className="p-1 hover:scale-110 transition-transform"
                                 >
                                   <Star
-                                    className={`w - 6 h - 6 ${star <= rating
+                                    className={`w-6 h-6 ${star <= rating
                                       ? 'fill-yellow-400 text-yellow-400'
                                       : 'text-muted-foreground'
-                                      } `}
+                                      }`}
                                   />
                                 </button>
                               ))}
@@ -629,7 +628,7 @@ const ProductDetail = () => {
                                   {[...Array(5)].map((_, i) => (
                                     <Star
                                       key={i}
-                                      className={`w - 4 h - 4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'} `}
+                                      className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
                                     />
                                   ))}
                                 </div>
